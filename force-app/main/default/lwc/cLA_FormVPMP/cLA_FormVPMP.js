@@ -5,7 +5,10 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import getCampaignProducts from '@salesforce/apex/CLA_FormVPMPController.getCampaignProducts';
 import getPersonAccountByEmail from '@salesforce/apex/CLA_FormVPMPController.getPersonAccountByEmail';
 import createOrders from '@salesforce/apex/CLA_FormVPMPController.createOrders';
-import getPickupLocationsFromCampaign from '@salesforce/apex/CLA_FormVPMPController.getPickupLocationsFromCampaign';
+//import getPickupLocationsFromCampaign from '@salesforce/apex/CLA_FormVPMPController.getPickupLocationsFromCampaign';
+//import getPickupLocationsFromCampaignAlmacenes from '@salesforce/apex/CLA_FormVPMPController.getPickupLocationsFromCampaignAlmacenes';
+import getPickupLocationsAndProductsByCampaign from '@salesforce/apex/CLA_FormVPMPController.getPickupLocationsAndProductsByCampaign';
+import updateMissingAccountFields from '@salesforce/apex/CLA_FormVPMPController.updateMissingAccountFields';
 import { getObjectInfo, getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
 import ACCOUNT_OBJECT from '@salesforce/schema/Contact';
 import REGION_FIELD from '@salesforce/schema/Contact.Region__c';
@@ -44,6 +47,8 @@ export default class CampaignOrderComponent extends LightningElement {
     // Picklists
     @track pickupLocationOptions = [];
 
+    @track productsByLocation = {};
+
     @track regionOptions = [];
     @track countryOptions = [];
     @track stateOptions = [];
@@ -54,6 +59,10 @@ export default class CampaignOrderComponent extends LightningElement {
 
     @track isEmailDisabled = false;
     isEmailFromUrl = false;
+
+    // Account fields
+    @track showMissingBirthdate = false;
+    @track showMissingLocationFields = false;
 
     recordTypeId;
     countryFieldInfo;
@@ -102,25 +111,19 @@ export default class CampaignOrderComponent extends LightningElement {
     // Loaders
     // -------------------------------
     initializeComponent() {
-        Promise.all([
-            getCampaignProducts({ campaignId: this.campaignId }),
-            getPickupLocationsFromCampaign({ campaignId: this.campaignId })
-        ])
-        .then(([productsResult, pickupResult]) => {
-            if (!productsResult || productsResult.length === 0) {
-                this.isInvalidCampaignModalOpen = true;
-            } else {
-                this.products = this.mapProducts(productsResult);
+        getPickupLocationsAndProductsByCampaign({ campaignId: this.campaignId })
+        .then(result => {
+            console.log(JSON.stringify(result));
+            this.pickupLocationOptions = result.pickupLocations || [];
+            this.productsByLocation = result.productsByLocation || {};
 
-                this.pickupLocationOptions = pickupResult || [];
-
-                if (pickupResult.length === 1) {
-                    this.selectedPickupLocation = pickupResult[0].value;
-                    this.isPickupLocationDisabled = true;
-                }
-
-                this.isComponentReady = true;
+            if (this.pickupLocationOptions.length === 1) {
+                this.selectedPickupLocation = this.pickupLocationOptions[0].value;
+                this.isPickupLocationDisabled = true;
+                this.products = this.mapProducts(this.productsByLocation[this.selectedPickupLocation] || []);
             }
+
+            this.isComponentReady = true;
         })
         .catch(error => {
             console.error('Error loading campaign data:', error);
@@ -153,6 +156,14 @@ export default class CampaignOrderComponent extends LightningElement {
             .then(result => {
                 this.accountId = result?.accountId || '';
                 this.optInAnnualNewsletter = result?.optInAnnualNewsletter || false;
+
+                const bdate = result?.birthdate;
+                const region = result?.region;
+                const country = result?.country;
+                const state = result?.state;
+
+                this.showMissingBirthdate = !bdate;
+                this.showMissingLocationFields = !region || !country || !state;
 
                 if (this.accountId && this.isEmailFromUrl) {
                     this.isEmailDisabled = true;
@@ -260,7 +271,11 @@ export default class CampaignOrderComponent extends LightningElement {
     }
 
     handleInputChange(event) {
-        this[event.target.name] = event.target.value;
+        const { name, value } = event.target;
+        this[name] = value;
+        if (name === 'selectedPickupLocation') {
+        this.products = this.mapProducts(this.productsByLocation[value] || []);
+}
     }
 
     handleCheckboxChange(event) {
@@ -336,8 +351,23 @@ export default class CampaignOrderComponent extends LightningElement {
         this.isLoading = true;
         createOrders({ input: orderRequest })
             .then(() => {
-                this.isNewOrderOpen = true;
-                this.products = this.mapProducts(this.products);
+            this.isNewOrderOpen = true;
+            this.products = this.mapProducts(this.products);
+
+            if (this.accountId && (this.showMissingBirthdate || this.showMissingLocationFields)) {
+                const updatePayload = {
+                    accountId: this.accountId
+                };
+
+                if (this.showMissingBirthdate && this.birthdate) updatePayload.birthdate = this.birthdate;
+                if (this.showMissingLocationFields && this.selectedRegion) updatePayload.region = this.selectedRegion;
+                if (this.showMissingLocationFields && this.country) updatePayload.country = this.country;
+                if (this.showMissingLocationFields && this.state) updatePayload.state = this.state;
+
+                // Fire update
+                updateMissingAccountFields({ input: updatePayload })
+                    .catch(err => console.error('Failed to update missing fields:', err));
+            }
             })
             .catch(error => {
                 console.error('Create order failed:', error);
