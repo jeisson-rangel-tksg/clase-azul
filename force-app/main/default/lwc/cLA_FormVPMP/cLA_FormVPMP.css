@@ -1,0 +1,70 @@
+:host{
+    --lwc-inputStaticFontSize: 16px;
+    --lwc-inputStaticFontWeight: bold;
+ }
+
+ :host {
+    --sds-c-card-color-background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    -webkit-border-radius: 8px;
+    -moz-border-radius: 8px;
+    -ms-border-radius: 8px;
+    -o-border-radius: 8px;;
+}
+
+.custom-disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.label-hidden .slds-form-element__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.custom-label {
+    margin-bottom: 0.25rem;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.custom-label .required {
+    color: red;
+    font-weight: bold;
+}
+
+.custom-label .main-label {
+    font-weight: bold;
+    color: black;
+}
+
+.custom-label .sub-label {
+    font-style: italic;
+    color: gray;
+}
+
+.gray {
+    font-style: italic;
+    color: gray;
+}
+
+.custom-label-stacked .main-label {
+    font-weight: bold;
+    color: black;
+    font-size: 14px;
+}
+
+.custom-label-stacked .sub-label {
+    font-style: italic;
+    color: gray;
+    font-size: 14px;
+}

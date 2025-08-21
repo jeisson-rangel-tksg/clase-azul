@@ -1,0 +1,388 @@
+<template>
+    <div class="background slds-p-around_large">
+        <template lwc:if={isLoading}>
+            <lightning-spinner alternative-text="Loading..." size="medium"></lightning-spinner>
+        </template>
+
+        <template lwc:if={isComponentReady}>
+            <lightning-card class="container bg-form">
+                <div class="slds-p-around_medium">
+                    <h4><i>Welcome to Clase Azul México</i></h4>
+                    <hr />
+                    <template lwc:if={isNewUser}>
+                        <lightning-layout multiple-rows="true">
+                            <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                <div class="custom-label">
+                                    <span class="required">*</span>
+                                    <span class="main-label">Primary Email </span>
+                                    <span class="sub-label">Correo electrónico</span>
+                                </div>
+                                <lightning-input
+                                    variant="label-hidden"
+                                    type="email"
+                                    name="email"
+                                    value={email}
+                                    onblur={handleEmailBlur}
+                                    disabled={isEmailDisabled}
+                                    required>
+                                </lightning-input>
+                            </lightning-layout-item>
+
+                            <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                <div class="custom-label">
+                                    <span class="required">*</span>
+                                    <span class="main-label">First Name </span>
+                                    <span class="sub-label">Nombre</span>
+                                </div>
+                                <lightning-input
+                                    variant="label-hidden"
+                                    name="firstName"
+                                    value={firstName}
+                                    onchange={handleInputChange}
+                                    required>
+                                </lightning-input>
+                            </lightning-layout-item>
+
+                            <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                <div class="custom-label">
+                                    <span class="required">*</span>
+                                    <span class="main-label">Last Name </span>
+                                    <span class="sub-label">Apellido</span>
+                                </div>
+                                <lightning-input
+                                    variant="label-hidden"
+                                    name="lastName"
+                                    value={lastName}
+                                    onchange={handleInputChange}
+                                    required>
+                                </lightning-input>
+                            </lightning-layout-item>
+
+                            <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                <div class="custom-label">
+                                    <span class="required">*</span>
+                                    <span class="main-label">Date of Birth </span>
+                                    <span class="sub-label">Fecha de nacimiento</span>
+                                </div>
+                                <lightning-input
+                                    variant="label-hidden"
+                                    type="date"
+                                    name="birthdate"
+                                    value={birthdate}
+                                    onchange={handleInputChange}
+                                    required>
+                                </lightning-input>
+                            </lightning-layout-item>
+
+                            <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                <div class="custom-label">
+                                    <span class="required">*</span>
+                                    <span class="main-label">Phone Number </span>
+                                    <span class="sub-label">Número de teléfono</span>
+                                </div>
+                                <lightning-input
+                                    variant="label-hidden"
+                                    type="tel"
+                                    name="phone"
+                                    value={phone}
+                                    onchange={handleInputChange}
+                                    required>
+                                </lightning-input>
+                            </lightning-layout-item>
+
+                            <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                <div class="custom-label">
+                                    <span class="required">*</span>
+                                    <span class="main-label">Region </span>
+                                    <span class="sub-label">Región</span>
+                                </div>
+                                <lightning-combobox
+                                    variant="label-hidden"
+                                    name="region"
+                                    options={regionOptions}
+                                    value={selectedRegion}
+                                    onchange={handleRegionChange}
+                                    placeholder="Select a Region"
+                                    required>
+                                </lightning-combobox>
+                            </lightning-layout-item>
+
+                            <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                <template lwc:if={showCountryInput}>
+                                    <div class="custom-label">
+                                        <span class="required">*</span>
+                                        <span class="main-label">Country </span>
+                                        <span class="sub-label">País</span>
+                                    </div>
+                                    <lightning-input
+                                        variant="label-hidden"
+                                        name="country"
+                                        value={country}
+                                        onchange={handleCountryChange}
+                                        placeholder="Enter a Country"
+                                        required>
+                                    </lightning-input>
+                                </template>
+                                <template lwc:else>
+                                    <div class="custom-label">
+                                        <span class="required">*</span>
+                                        <span class="main-label">Country </span>
+                                        <span class="sub-label">País</span>
+                                    </div>
+                                    <lightning-combobox
+                                        variant="label-hidden"
+                                        name="country"
+                                        options={countryOptions}
+                                        value={country}
+                                        onchange={handleCountryChange}
+                                        placeholder="Select a Country"
+                                        required>
+                                    </lightning-combobox>
+                                </template>
+                            </lightning-layout-item>
+
+                            <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                <template lwc:if={showStateInput}>
+                                    <div class="custom-label">
+                                        <span class="required">*</span>
+                                        <span class="main-label">State </span>
+                                        <span class="sub-label">Estado</span>
+                                    </div>
+                                    <lightning-input
+                                        variant="label-hidden"
+                                        name="state"
+                                        value={state}
+                                        onchange={handleStateChange}
+                                        placeholder="Enter a State"
+                                        required>
+                                    </lightning-input>
+                                </template>
+                                <template lwc:else>
+                                    <div class="custom-label">
+                                        <span class="required">*</span>
+                                        <span class="main-label">State </span>
+                                        <span class="sub-label">Estado</span>
+                                    </div>
+                                    <lightning-combobox
+                                        variant="label-hidden"
+                                        name="state"
+                                        options={stateOptions}
+                                        value={state}
+                                        onchange={handleStateChange}
+                                        placeholder="Select a State"
+                                        required>
+                                    </lightning-combobox>
+                                </template>
+                            </lightning-layout-item>
+
+                            <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                <div class="custom-label">
+                                    <span class="required">*</span>
+                                    <span class="main-label">City </span>
+                                    <span class="sub-label">Ciudad</span>
+                                </div>
+                                <lightning-input
+                                    variant="label-hidden"
+                                    name="city"
+                                    value={city}
+                                    onchange={handleInputChange}
+                                    required>
+                                </lightning-input>
+                            </lightning-layout-item>
+
+                            <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                <div class="custom-label">
+                                    <span class="required">*</span>
+                                    <span class="main-label">ZIP/Postal Code </span>
+                                    <span class="sub-label">Código Postal</span>
+                                </div>
+                                <lightning-input
+                                    variant="label-hidden"
+                                    name="zip"
+                                    value={zip}
+                                    onchange={handleInputChange}
+                                    required>
+                                </lightning-input>
+                            </lightning-layout-item>
+                            <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                <div class="custom-label">
+                                    <span class="required">*</span>
+                                    <span class="main-label">Desired Pick-Up Location </span>
+                                    <span class="sub-label">Ubicación deseada</span>
+                                </div>
+                                <lightning-combobox
+                                    variant="label-hidden"
+                                    name="selectedPickupLocation"
+                                    disabled={isPickupLocationDisabled}
+                                    options={pickupLocationOptions}
+                                    value={selectedPickupLocation}
+                                    onchange={handleInputChange}
+                                    placeholder="Select a location"
+                                    required>
+                                </lightning-combobox>
+                            </lightning-layout-item>
+                        </lightning-layout>
+                    </template>
+                    <template lwc:else>
+                        <lightning-layout multiple-rows="true">
+                            <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                <div class="custom-label">
+                                    <span class="required">*</span>
+                                    <span class="main-label">Primary Email</span>
+                                    <span class="sub-label">Correo electrónico</span>
+                                </div>
+                                <lightning-input
+                                    variant="label-hidden"
+                                    type="email"
+                                    name="email"
+                                    value={email}
+                                    onblur={handleEmailBlur}
+                                    disabled={isEmailDisabled}
+                                    required>
+                                </lightning-input>
+                            </lightning-layout-item>
+                            <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                <div class="custom-label">
+                                    <span class="required">*</span>
+                                    <span class="main-label">Desired Pick-Up Location </span>
+                                    <span class="sub-label">Ubicación deseada</span>
+                                </div>
+                                <lightning-combobox
+                                    variant="label-hidden"
+                                    name="selectedPickupLocation"
+                                    disabled={isPickupLocationDisabled}
+                                    options={pickupLocationOptions}
+                                    value={selectedPickupLocation}
+                                    onchange={handleInputChange}
+                                    placeholder="Select a location"
+                                    required>
+                                </lightning-combobox>
+                            </lightning-layout-item>
+                        </lightning-layout>
+                    </template>
+                    <div class="slds-box slds-m-around_medium">
+
+                        <!-- Wishlist checkbox with SLDS spacing -->
+                        <lightning-layout multiple-rows="true" 
+                            class="slds-grid_vertical-align-center slds-p-horizontal_small">
+                            <lightning-layout-item size="12" medium-device-size="1">
+                                <lightning-input
+                                    type="checkbox"
+                                    variant="label-hidden"
+                                    name="wishlistVintagePink2022"
+                                    checked={wishlistedVintagePink2022}
+                                    onchange={handleWishlistChange}
+                                    class="slds-checkbox slds-p-around_small">
+                                </lightning-input>
+                            </lightning-layout-item>
+
+                            <lightning-layout-item size="12" medium-device-size="11">
+                                <div class="custom-label-stacked">
+                                    <div class="main-label">
+                                        Mark this box if you are interested in adding our vintage item Clase Azul Pink 2022 to your wishlist.
+                                    </div>
+                                    <div class="sub-label">
+                                         Marca esta casilla si estás interesado en agregar nuestro artículo vintage Clase Azul Pink 2022 a tu lista de deseos.
+                                    </div>
+                                </div>
+                            </lightning-layout-item>
+                        </lightning-layout>
+
+                        <p class="slds-m-top_medium">Submission of this form does not guarantee allocation.  <span class="gray">/ El registro de este formulario no garantiza el producto.</span></p>
+                        <p class="slds-m-top_medium">Adding this item to your wishlist does not guarantee the acquisition of this product. <span class="gray">/ Agregar este artículo a tu lista de deseos no garantiza la adquisición del producto.</span></p>
+
+                    </div>
+
+                    <div class="slds-grid slds-grid_align-start slds-m-bottom_medium">
+                        <div class="slds-m-right_small">
+                            <lightning-input
+                                type="checkbox"
+                                variant="label-hidden"
+                                name="discover"
+                                checked={optInAnnualNewsletter}
+                                onchange={handleCheckboxChange}
+                                class="slds-checkbox">
+                            </lightning-input>
+                        </div>
+                        <div class="custom-label-stacked">
+                            <div class="main-label">
+                                Discover the art of our luxury spirits and Mexican hospitality. Be the first to know about our limited editions, private events, and new Clase Azul destinations, including La Hacienda.
+                            </div>
+                            <div class="sub-label">
+                                Descubre el arte de nuestros licores de lujo y la hospitalidad mexicana. Sé el primero en conocer nuestras ediciones limitadas, eventos privados y nuevos destinos de Clase Azul, incluyendo La Hacienda.
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="slds-text-align_center slds-p-around_small">
+                        By subscribing, you agree to Clase Azul’s
+                        <a href="https://www.claseazul.com/privacy" target="_blank">Terms & Conditions, Privacy Policy</a>,
+                        including GDPR Policy.
+                    </p>
+
+                    <div class="slds-m-top_medium slds-grid slds-grid_align-center">
+                        <lightning-button 
+                            class={submitButtonClass} 
+                            label="Submit" 
+                            variant="brand" 
+                            onclick={handleSubmit} 
+                            disabled={isSubmitDisabled}>
+                        </lightning-button>
+                    </div>
+                </div>
+            </lightning-card>
+        </template>
+    </div>
+
+    <template if:true={isNewOrderOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium"><i>Thank you. We have received your allocation request.</i></h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-text-align_center">
+                        You will be receiving more information soon. If you wish to change or cancel your allocation, please contact us at 
+                        <a href="mailto:info@claseazul.com"> info@claseazul.com</a>
+                    </p>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <template if:true={isNoExistingAccountModalOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium"><i>No Existing Account Found!</i></h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-text-align_center">
+                        We couldn't find an account associated with the email you provided. Please double-check your information or contact us at
+                        <a href="mailto:info@claseazul.com"> info@claseazul.com</a> for assistance.
+                    </p>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <template if:true={isInvalidCampaignModalOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium"><i>Invalid or Missing Campaign</i></h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-text-align_center">
+                        The campaign link appears to be invalid or missing required information.<br />
+                        Please verify the URL or contact
+                        <a href="mailto:info@claseazul.com"> info@claseazul.com</a> for assistance.
+                    </p>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>
