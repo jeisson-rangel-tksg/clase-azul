@@ -1,0 +1,107 @@
+public without sharing class CLA_FormVPMPController {
+    @AuraEnabled(cacheable=true)
+    public static List<Product2> getCampaignProducts(String campaignId) {
+        return [
+            SELECT Id, Name, Description, Family
+            FROM Product2
+            WHERE Id IN (
+                SELECT Product__c FROM CampaignProduct__c WHERE Campaign__c = :campaignId
+            )
+            WITH SYSTEM_MODE
+        ];
+    }
+
+    /**
+     * Retrieves values from the Location__c field of campaign.
+     *
+     * @param campaignId - Campaign Id.
+     * @return Map containing locations available for the campaign.
+     * @throws AuraHandledException if campaign id is null or the user has no access to the field Location__c.
+     */
+    @AuraEnabled(cacheable=true)
+    public static List<CLA_FormVPMPController.PickupLocationOption> getPickupLocationsFromCampaign(Id campaignId) {
+
+        List<CLA_FormVPMPController.PickupLocationOption> options = new List<CLA_FormVPMPController.PickupLocationOption>();
+        Map<String, String> apiToLabel = new Map<String, String>();
+
+        if (String.isBlank(campaignId)) {
+            throw new AuraHandledException('Missing Campaign Id.');
+        }
+
+        if (!Schema.sObjectType.Campaign.fields.Location__c.isAccessible()) {
+            throw new AuraHandledException('Unable to access this field.');
+        }
+
+        Campaign camp = [
+            SELECT Location__c
+            FROM Campaign
+            WHERE Id = :campaignId
+            LIMIT 1
+        ];
+
+        Schema.DescribeFieldResult describe = Campaign.Location__c.getDescribe();
+        for (Schema.PicklistEntry entry : describe.getPicklistValues()) {
+                apiToLabel.put(entry.getValue(), entry.getLabel());
+        }
+
+        String selected = String.isBlank(camp.Location__c) ? CLA_FormConstants.DEFAULT_PICKUP_LOCATION_OPTIONS : camp.Location__c;
+
+        List<String> selectedValues = selected.split(';');
+
+        for (String apiValue : selectedValues) {
+            String label = apiToLabel.get(apiValue);
+            options.add(new CLA_FormVPMPController.PickupLocationOption(apiValue, label));
+        }
+
+        return options;
+    }
+
+    /**
+     * Retrieves Person Account by email. If not found, creates one using the email as name.
+     *
+     * @param email - Email address tied to the Person Account.
+     * @return Map containing accountId and optInAnnualNewsletter preference.
+     * @throws AuraHandledException if email is invalid.
+     */
+    @AuraEnabled(cacheable=true)
+    public static Map<String, Object> getPersonAccountByEmail(String email) {
+        if (String.isBlank(email)) {
+            throw new AuraHandledException('Invalid email.');
+        }
+
+        List<Account> personAccounts = CLA_FormUtils.getPersonAccountByEmail(email);
+
+        if (personAccounts.isEmpty()) {
+            return new Map<String, Object>{
+                'accountId' => null,
+                'optInAnnualNewsletter' => false
+            };
+        }else{
+            return new Map<String, Object>{
+                'accountId' => personAccounts[0].Id,
+                'optInAnnualNewsletter' => personAccounts[0].CLA_OptInAnnualNewsletter__pc
+            };
+        }
+    }
+
+
+    @AuraEnabled
+    public static void createOrders(Map<String, Object> input) {
+        CLA_FormUtils.createOrderWithItems(input);
+    }
+
+    /**
+     * Wrapper class to represent the values and labels for the selected items
+     * in the multi-selection picklist Location.
+     */
+    public class PickupLocationOption {
+        @AuraEnabled public String value;
+        @AuraEnabled public String label;
+
+        public PickupLocationOption(String value, String label) {
+            this.value = value;
+            this.label = label;
+        }
+    }
+    
+}
