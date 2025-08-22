@@ -76,12 +76,45 @@ public without sharing class CLA_FormVPMPController {
                 'accountId' => null,
                 'optInAnnualNewsletter' => false
             };
-        }else{
+        } else {
+            Account acc = personAccounts[0];
             return new Map<String, Object>{
-                'accountId' => personAccounts[0].Id,
-                'optInAnnualNewsletter' => personAccounts[0].CLA_OptInAnnualNewsletter__pc
+                'accountId' => acc.Id,
+                'optInAnnualNewsletter' => acc.CLA_OptInAnnualNewsletter__pc,
+                'birthdate' => acc.PersonBirthdate,
+                'region' => acc.Region__pc,
+                'country' => acc.Country__pc,
+                'state' => acc.State__pc
             };
         }
+    }
+
+    @AuraEnabled
+    public static void updateMissingAccountFields(Map<String, Object> input) {
+        Id accountId = (Id) input.get('accountId');
+        if (accountId == null) {
+            throw new AuraHandledException('Missing account ID.');
+        }
+
+        Account accToUpdate = new Account(Id = accountId);
+
+        if (input.containsKey('birthdate')) {
+            accToUpdate.PersonBirthdate = Date.valueOf((String) input.get('birthdate'));
+        }
+
+        if (input.containsKey('region')) {
+            accToUpdate.Region__pc = (String) input.get('region');
+        }
+
+        if (input.containsKey('country')) {
+            accToUpdate.Country__pc = (String) input.get('country');
+        }
+
+        if (input.containsKey('state')) {
+            accToUpdate.State__pc = (String) input.get('state');
+        }
+
+        update accToUpdate;
     }
 
 

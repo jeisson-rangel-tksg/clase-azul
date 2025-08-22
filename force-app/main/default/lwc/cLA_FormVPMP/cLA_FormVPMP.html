@@ -258,6 +258,109 @@
                                     required>
                                 </lightning-combobox>
                             </lightning-layout-item>
+                            <template if:true={showMissingBirthdate}>
+                                <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                    <div class="custom-label">
+                                        <span class="required">*</span>
+                                        <span class="main-label">Date of Birth</span>
+                                        <span class="sub-label">Fecha de nacimiento</span>
+                                    </div>
+                                    <lightning-input
+                                        variant="label-hidden"
+                                        type="date"
+                                        name="birthdate"
+                                        value={birthdate}
+                                        onchange={handleInputChange}
+                                        required>
+                                    </lightning-input>
+                                </lightning-layout-item>
+                            </template>
+
+                            <!-- Conditionally show missing region/country/state -->
+                            <template if:true={showMissingLocationFields}>
+                                <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                    <div class="custom-label">
+                                        <span class="required">*</span>
+                                        <span class="main-label">Region</span>
+                                        <span class="sub-label">Región</span>
+                                    </div>
+                                    <lightning-combobox
+                                        variant="label-hidden"
+                                        name="region"
+                                        options={regionOptions}
+                                        value={selectedRegion}
+                                        onchange={handleRegionChange}
+                                        placeholder="Select a Region"
+                                        required>
+                                    </lightning-combobox>
+                                </lightning-layout-item>
+
+                                <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                    <template lwc:if={showCountryInput}>
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">Country</span>
+                                            <span class="sub-label">País</span>
+                                        </div>
+                                        <lightning-input
+                                            variant="label-hidden"
+                                            name="country"
+                                            value={country}
+                                            onchange={handleCountryChange}
+                                            required>
+                                        </lightning-input>
+                                    </template>
+                                    <template lwc:else>
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">Country</span>
+                                            <span class="sub-label">País</span>
+                                        </div>
+                                        <lightning-combobox
+                                            variant="label-hidden"
+                                            name="country"
+                                            options={countryOptions}
+                                            value={country}
+                                            onchange={handleCountryChange}
+                                            placeholder="Select a Country"
+                                            required>
+                                        </lightning-combobox>
+                                    </template>
+                                </lightning-layout-item>
+
+                                <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                    <template lwc:if={showStateInput}>
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">State</span>
+                                            <span class="sub-label">Estado</span>
+                                        </div>
+                                        <lightning-input
+                                            variant="label-hidden"
+                                            name="state"
+                                            value={state}
+                                            onchange={handleStateChange}
+                                            required>
+                                        </lightning-input>
+                                    </template>
+                                    <template lwc:else>
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">State</span>
+                                            <span class="sub-label">Estado</span>
+                                        </div>
+                                        <lightning-combobox
+                                            variant="label-hidden"
+                                            name="state"
+                                            options={stateOptions}
+                                            value={state}
+                                            onchange={handleStateChange}
+                                            placeholder="Select a State"
+                                            required>
+                                        </lightning-combobox>
+                                    </template>
+                                </lightning-layout-item>
+                            </template>
                         </lightning-layout>
                     </template>
                     <div class="slds-box slds-m-around_medium">
@@ -304,7 +407,7 @@
                                 </lightning-layout>
                             </div>
                         </template>
-                        <p>Desired # of decanters is based upon availability and will be confirmed by your Client Advisor. Submission of this form does not guarantee allocation. <span class="gray">/ # deseado de licoreras sujeto a disponibilidad, será confirmado por su Client Advisor. El registro de este formulario no garantiza el producto.</span></p>
+                        <p>Desired # of decanters is based upon availability and will be confirmed by your Client Advisor. Submission of this form does not guarantee allocation. <span class="gray">/ # deseado de licoreras sujeto a disponibilidad, será confirmado por su Client Advisor. El registro de esta forma no garantiza el producto.</span></p>
                     </div>
 
                     <div class="slds-grid slds-grid_align-start slds-m-bottom_medium">
@@ -352,7 +455,7 @@
         <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
             <div class="slds-modal__container">
                 <header class="slds-modal__header">
-                    <h2 class="slds-text-heading_medium"><i>Thank you. We have received your allocation request.</i></h2>
+                    <h2 class="slds-text-heading_medium"><i>Thank you! We have already registered your allocation</i></h2>
                 </header>
                 <div class="slds-modal__content slds-p-around_medium">
                     <p class="slds-text-align_center">
