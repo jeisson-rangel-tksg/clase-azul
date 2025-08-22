@@ -1,4 +1,22 @@
 public without sharing class CLA_FormVPMPController {
+
+    @AuraEnabled(cacheable=true)
+    public static Boolean isCampaignActive(Id campaignId) {
+        if (String.isBlank(campaignId)) {
+            return false;
+        }
+        List<Campaign> camps = [
+            SELECT IsActive
+            FROM Campaign
+            WHERE Id = :campaignId
+            LIMIT 1
+        ];
+        if (camps.isEmpty()) {
+            return false;
+        }
+        return camps[0].IsActive;
+    }
+
     @AuraEnabled(cacheable=true)
     public static List<Product2> getCampaignProducts(String campaignId) {
         return [
@@ -55,6 +73,88 @@ public without sharing class CLA_FormVPMPController {
 
         return options;
     }
+
+    @AuraEnabled(cacheable=true)
+    public static PickupResponse getPickupLocationsAndProductsByCampaign(Id campaignId) {
+
+        List<PickupLocationOption> pickupOptions = new List<PickupLocationOption>();
+        Map<String, List<Product2>> productsByLocation = new Map<String, List<Product2>>();
+        System.debug('getPickupLocationsAndProductsByCampaign | campaignId: '+campaignId);
+
+        if (String.isBlank(campaignId)) {
+            throw new AuraHandledException('Missing Campaign Id.');
+        }
+
+        try {
+
+            // 1. Query all campaign-linked almacenes
+            List<Almacen_de_campa_a__c> almacenLinks = [
+                SELECT Id, Name, Almacen__r.Id, Almacen__r.Name
+                FROM Almacen_de_campa_a__c
+                WHERE Campaign__c = :campaignId
+            ];
+
+            if (almacenLinks.isEmpty()) {
+                return new PickupResponse(pickupOptions, productsByLocation);
+            }
+
+            Map<Id, Almacen_de_campa_a__c> almacenLinkByAlmacenId = new Map<Id, Almacen_de_campa_a__c>();
+            Set<Id> almacenIds = new Set<Id>();
+
+            for (Almacen_de_campa_a__c link : almacenLinks) {
+                if (link.Almacen__r != null) {
+                    almacenIds.add(link.Almacen__r.Id);
+                    almacenLinkByAlmacenId.put(link.Almacen__r.Id, link);
+                }
+            }
+
+            // 2. Query Inventario__c records with quantity > 0
+            List<Inventario__c> inventarios = [
+                SELECT Product__r.Id, Product__r.Name, Product__r.Description, Product__r.Family,
+                    Almacen__r.Id, Almacen__r.Name,
+                    Quantity__c
+                FROM Inventario__c
+                WHERE Almacen__r.Id IN :almacenIds
+                AND Quantity__c > 0
+            ];
+
+            // 3. Group products by almacen name
+            Map<String, List<Product2>> tempProductMap = new Map<String, List<Product2>>();
+            Set<Id> validAlmacenIds = new Set<Id>();
+
+            for (Inventario__c inv : inventarios) {
+                Id almacenId = inv.Almacen__r?.Id;
+                String almacenName = inv.Almacen__r?.Name;
+
+                if (almacenId == null || almacenName == null || inv.Product__r == null) continue;
+
+                if (!tempProductMap.containsKey(almacenName)) {
+                    tempProductMap.put(almacenName, new List<Product2>());
+                }
+                tempProductMap.get(almacenName).add(inv.Product__r);
+                validAlmacenIds.add(almacenId); // track only almacenes with at least 1 product with quantity > 0
+            }
+
+            // 4. Build valid pickup options
+            for (Id almacenId : validAlmacenIds) {
+                Almacen_de_campa_a__c link = almacenLinkByAlmacenId.get(almacenId);
+                if (link != null && link.Almacen__r?.Name != null && link.Name != null) {
+                    pickupOptions.add(new PickupLocationOption(
+                        link.Almacen__r.Name,  // value
+                        link.Name              // label
+                    ));
+
+                    productsByLocation.put(link.Almacen__r.Name, tempProductMap.get(link.Almacen__r.Name));
+                }
+            }
+        } catch (Exception e) {
+            System.debug(e);
+        }
+        System.debug('Pickup options: ' + pickupOptions);
+        System.debug('Products by location: ' + productsByLocation);
+        return new PickupResponse(pickupOptions, productsByLocation);
+    }
+
 
     /**
      * Retrieves Person Account by email. If not found, creates one using the email as name.
@@ -134,6 +234,16 @@ public without sharing class CLA_FormVPMPController {
         public PickupLocationOption(String value, String label) {
             this.value = value;
             this.label = label;
+        }
+    }
+
+    public class PickupResponse {
+        @AuraEnabled public List<PickupLocationOption> pickupLocations;
+        @AuraEnabled public Map<String, List<Product2>> productsByLocation;
+
+        public PickupResponse(List<PickupLocationOption> locations, Map<String, List<Product2>> products) {
+            this.pickupLocations = locations;
+            this.productsByLocation = products;
         }
     }
     
