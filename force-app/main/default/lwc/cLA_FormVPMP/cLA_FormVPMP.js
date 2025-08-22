@@ -2,12 +2,13 @@ import { LightningElement, track, wire } from 'lwc';
 import { CurrentPageReference } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
-import getCampaignProducts from '@salesforce/apex/CLA_FormVPMPController.getCampaignProducts';
-import getPersonAccountByEmail from '@salesforce/apex/CLA_FormVPMPController.getPersonAccountByEmail';
-import createOrders from '@salesforce/apex/CLA_FormVPMPController.createOrders';
 //import getPickupLocationsFromCampaign from '@salesforce/apex/CLA_FormVPMPController.getPickupLocationsFromCampaign';
 //import getPickupLocationsFromCampaignAlmacenes from '@salesforce/apex/CLA_FormVPMPController.getPickupLocationsFromCampaignAlmacenes';
+//import getCampaignProducts from '@salesforce/apex/CLA_FormVPMPController.getCampaignProducts';
+import getPersonAccountByEmail from '@salesforce/apex/CLA_FormVPMPController.getPersonAccountByEmail';
+import createOrders from '@salesforce/apex/CLA_FormVPMPController.createOrders';
 import getPickupLocationsAndProductsByCampaign from '@salesforce/apex/CLA_FormVPMPController.getPickupLocationsAndProductsByCampaign';
+import isCampaignActive from '@salesforce/apex/CLA_FormVPMPController.isCampaignActive';
 import updateMissingAccountFields from '@salesforce/apex/CLA_FormVPMPController.updateMissingAccountFields';
 import { getObjectInfo, getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
 import ACCOUNT_OBJECT from '@salesforce/schema/Contact';
@@ -99,11 +100,27 @@ export default class CampaignOrderComponent extends LightningElement {
             if (campaignId) this.campaignId = campaignId;
 
             if (this.campaignId) {
-                this.checkAccount();
+                isCampaignActive({ campaignId: this.campaignId })
+                    .then(result => {
+                        if (!result) {
+                            // inactive campaign → show modal
+                            this.isInvalidCampaignModalOpen = true;
+                            this.isLoading = false;
+                        } else {
+                            // active → continue as usual
+                            this.checkAccount();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking campaign active:', error);
+                        this.isInvalidCampaignModalOpen = true;
+                        this.isLoading = false;
+                    });
             } else {
                 this.isInvalidCampaignModalOpen = true;
                 this.isLoading = false;
             }
+
         }
     }
 
