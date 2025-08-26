@@ -2,12 +2,11 @@ import { LightningElement, track, wire } from 'lwc';
 import { CurrentPageReference } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
-//import getPickupLocationsFromCampaign from '@salesforce/apex/CLA_FormVPMPController.getPickupLocationsFromCampaign';
-//import getPickupLocationsFromCampaignAlmacenes from '@salesforce/apex/CLA_FormVPMPController.getPickupLocationsFromCampaignAlmacenes';
-//import getCampaignProducts from '@salesforce/apex/CLA_FormVPMPController.getCampaignProducts';
+import getPickupLocationsFromCampaign from '@salesforce/apex/CLA_FormVPMPController.getPickupLocationsFromCampaign';
+import getCampaignProducts from '@salesforce/apex/CLA_FormVPMPController.getCampaignProducts';
+//import getPickupLocationsAndProductsByCampaign from '@salesforce/apex/CLA_FormVPMPController.getPickupLocationsAndProductsByCampaign';
 import getPersonAccountByEmail from '@salesforce/apex/CLA_FormVPMPController.getPersonAccountByEmail';
 import createOrders from '@salesforce/apex/CLA_FormVPMPController.createOrders';
-import getPickupLocationsAndProductsByCampaign from '@salesforce/apex/CLA_FormVPMPController.getPickupLocationsAndProductsByCampaign';
 import isCampaignActive from '@salesforce/apex/CLA_FormVPMPController.isCampaignActive';
 import updateMissingAccountFields from '@salesforce/apex/CLA_FormVPMPController.updateMissingAccountFields';
 import { getObjectInfo, getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
@@ -128,19 +127,25 @@ export default class CampaignOrderComponent extends LightningElement {
     // Loaders
     // -------------------------------
     initializeComponent() {
-        getPickupLocationsAndProductsByCampaign({ campaignId: this.campaignId })
-        .then(result => {
-            console.log(JSON.stringify(result));
-            this.pickupLocationOptions = result.pickupLocations || [];
-            this.productsByLocation = result.productsByLocation || {};
+        Promise.all([
+            getCampaignProducts({ campaignId: this.campaignId }),
+            getPickupLocationsFromCampaign({ campaignId: this.campaignId })
+        ])
+        .then(([productsResult, pickupResult]) => {
+            if (!productsResult || productsResult.length === 0) {
+                this.isInvalidCampaignModalOpen = true;
+            } else {
+                this.products = this.mapProducts(productsResult);
 
-            if (this.pickupLocationOptions.length === 1) {
-                this.selectedPickupLocation = this.pickupLocationOptions[0].value;
-                this.isPickupLocationDisabled = true;
-                this.products = this.mapProducts(this.productsByLocation[this.selectedPickupLocation] || []);
+                this.pickupLocationOptions = pickupResult || [];
+
+                if (pickupResult.length === 1) {
+                    this.selectedPickupLocation = pickupResult[0].value;
+                    this.isPickupLocationDisabled = true;
+                }
+
+                this.isComponentReady = true;
             }
-
-            this.isComponentReady = true;
         })
         .catch(error => {
             console.error('Error loading campaign data:', error);
@@ -290,9 +295,9 @@ export default class CampaignOrderComponent extends LightningElement {
     handleInputChange(event) {
         const { name, value } = event.target;
         this[name] = value;
-        if (name === 'selectedPickupLocation') {
-        this.products = this.mapProducts(this.productsByLocation[value] || []);
-}
+        // if (name === 'selectedPickupLocation') {
+        //         this.products = this.mapProducts(this.productsByLocation[value] || []);
+        // }
     }
 
     handleCheckboxChange(event) {
