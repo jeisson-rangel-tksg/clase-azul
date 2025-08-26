@@ -92,7 +92,22 @@ export default class OrderFormVPNP extends LightningElement {
             if (campaignId) this.campaignId = campaignId;
 
             if (this.campaignId) {
-                this.checkAccount();
+                isCampaignActive({ campaignId: this.campaignId })
+                    .then(result => {
+                        if (!result) {
+                            // inactive campaign → show modal
+                            this.isInvalidCampaignModalOpen = true;
+                            this.isLoading = false;
+                        } else {
+                            // active → continue as usual
+                            this.checkAccount();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking campaign active:', error);
+                        this.isInvalidCampaignModalOpen = true;
+                        this.isLoading = false;
+                    });
             } else {
                 this.isInvalidCampaignModalOpen = true;
                 this.isLoading = false;
