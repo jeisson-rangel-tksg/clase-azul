@@ -6,6 +6,7 @@ import getPickupLocationsFromCampaign from '@salesforce/apex/CLA_FormVPMPControl
 import getCampaignProducts from '@salesforce/apex/CLA_FormVPMPController.getCampaignProducts';
 //import getPickupLocationsAndProductsByCampaign from '@salesforce/apex/CLA_FormVPMPController.getPickupLocationsAndProductsByCampaign';
 import getPersonAccountByEmail from '@salesforce/apex/CLA_FormVPMPController.getPersonAccountByEmail';
+import canUserCreateOrder from '@salesforce/apex/CLA_FormVPMPController.canUserCreateOrder';
 import createOrders from '@salesforce/apex/CLA_FormVPMPController.createOrders';
 import isCampaignActive from '@salesforce/apex/CLA_FormVPMPController.isCampaignActive';
 import updateMissingAccountFields from '@salesforce/apex/CLA_FormVPMPController.updateMissingAccountFields';
@@ -43,10 +44,11 @@ export default class CampaignOrderComponent extends LightningElement {
     @track showStateInput = false;
     @track isPickupLocationDisabled = false;
 
+    @track canCreateOrderAllowed = true;
+    @track isOrderNotAllowedModalOpen = false;
 
     // Picklists
     @track pickupLocationOptions = [];
-
     @track productsByLocation = {};
 
     @track regionOptions = [];
@@ -67,6 +69,45 @@ export default class CampaignOrderComponent extends LightningElement {
     recordTypeId;
     countryFieldInfo;
     stateFieldInfo;
+
+    // NUEVAS propiedades de estado
+    @track retailerId = '';
+    @track retailerFreeText = '';
+    @track retailerNotFound = false;
+
+    retailerFields = {
+        primaryField: { fieldPath: 'Name' }
+    };
+
+    // Determina si el label seleccionado es "Liquor Store Near Me"
+    get isLiquorStoreNearMe() {
+        if (!this.selectedPickupLocation || !this.pickupLocationOptions) return false;
+        // Encontrar la opción seleccionada para leer su label
+        const opt = (this.pickupLocationOptions || []).find(o => o.value === this.selectedPickupLocation);
+        const label = opt?.label || '';
+        return label === 'Liquor Store Near Me';
+    }
+
+    // Mostrar/ocultar picker según el checkbox
+    get showRetailerPicker() {
+        return this.isLiquorStoreNearMe && !this.retailerNotFound;
+    }
+
+    // Handlers
+    handleRetailerChange(event) {
+        this.retailerId = event.detail.recordId;
+        console.log('RET ID: ', this.retailerId);
+    }
+
+    handleRetailerNotFoundToggle(event) {
+        this.retailerNotFound = event.target.checked;
+        if (this.retailerNotFound) {
+            this.retailerId = '';
+        } else {
+            this.retailerFreeText = '';
+        }
+    }
+
 
     @wire(getObjectInfo, { objectApiName: ACCOUNT_OBJECT })
     objectInfo({ data }) {
@@ -106,7 +147,7 @@ export default class CampaignOrderComponent extends LightningElement {
                             this.isInvalidCampaignModalOpen = true;
                             this.isLoading = false;
                         } else {
-                            // active → continue as usual
+                            this.refreshCanCreateOrder();
                             this.checkAccount();
                         }
                     })
@@ -289,15 +330,13 @@ export default class CampaignOrderComponent extends LightningElement {
         }
 
         this.email = newValue;
+        this.refreshCanCreateOrder();
         this.fetchAccountByEmail();
     }
 
     handleInputChange(event) {
         const { name, value } = event.target;
         this[name] = value;
-        // if (name === 'selectedPickupLocation') {
-        //         this.products = this.mapProducts(this.productsByLocation[value] || []);
-        // }
     }
 
     handleCheckboxChange(event) {
@@ -335,7 +374,14 @@ export default class CampaignOrderComponent extends LightningElement {
             this.showToast('Error', 'Missing customer email.', 'error');
             return;
         }
-
+        console.log('1')
+        this.refreshCanCreateOrder();
+        if (this.canCreateOrderAllowed === false) {
+            console.log('2')
+            this.isOrderNotAllowedModalOpen = true;
+            return;
+        }
+        console.log('3')
         const formattedProducts = this.products
             .filter(prod => parseInt(prod.quantity, 10) > 0)
             .map(prod => ({
@@ -362,7 +408,9 @@ export default class CampaignOrderComponent extends LightningElement {
             zip: this.zip,
             campaignId: this.campaignId,
             pickupLocation: this.selectedPickupLocation,
-            products: formattedProducts
+            products: formattedProducts,
+            retailerId: this.retailerId,
+            retailerNameText: this.retailerFreeText
         };
         
         // Filter out null or undefined fields
@@ -386,7 +434,6 @@ export default class CampaignOrderComponent extends LightningElement {
                 if (this.showMissingLocationFields && this.country) updatePayload.country = this.country;
                 if (this.showMissingLocationFields && this.state) updatePayload.state = this.state;
 
-                // Fire update
                 updateMissingAccountFields({ input: updatePayload })
                     .catch(err => console.error('Failed to update missing fields:', err));
             }
@@ -398,6 +445,23 @@ export default class CampaignOrderComponent extends LightningElement {
             .finally(() => {
                 this.isLoading = false;
             });
+    }
+
+    refreshCanCreateOrder() {
+        if (!this.campaignId || !this.email) {
+            this.canCreateOrderAllowed = true;
+            return;
+        }
+        canUserCreateOrder({ campaignId: this.campaignId, email: this.email })
+            .then(res => { this.canCreateOrderAllowed = res; })
+            .catch(err => {
+                console.error('canUserCreateOrder failed', err);
+                this.canCreateOrderAllowed = true;
+            });
+    }
+
+    closeOrderNotAllowedModal() {
+        this.isOrderNotAllowedModalOpen = false;
     }
 
     // -------------------------------

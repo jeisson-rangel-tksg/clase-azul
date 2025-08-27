@@ -150,11 +150,52 @@ public without sharing class CLA_FormVPMPController {
         } catch (Exception e) {
             System.debug(e);
         }
-        System.debug('Pickup options: ' + pickupOptions);
-        System.debug('Products by location: ' + productsByLocation);
         return new PickupResponse(pickupOptions, productsByLocation);
     }
 
+    @AuraEnabled(cacheable=true)
+    public static Boolean canUserCreateOrder(Id campaignId, String email) {
+
+        if (String.isBlank(campaignId) || String.isBlank(email)) return true;
+
+        Set<Id> scopeCampaignIds = collectParentAndImmediateChildren(campaignId);
+
+        Account pa = [
+            SELECT Id, PersonContactId
+            FROM Account
+            WHERE IsPersonAccount = true AND PersonEmail = :email
+            LIMIT 1
+        ];
+        if (pa == null) return true;
+        if (pa.PersonContactId == null) return true;
+       
+        Integer cmCount = [
+            SELECT COUNT()
+            FROM CampaignMember
+            WHERE CampaignId IN :scopeCampaignIds
+            AND ContactId = :pa.PersonContactId
+        ];
+        if (cmCount == 0) return false;
+
+        Boolean hasOrder = [
+            SELECT COUNT()
+            FROM Order
+            WHERE AccountId = :pa.Id
+            AND Campaign__c IN :scopeCampaignIds
+            LIMIT 1
+        ] > 0;
+
+        return !hasOrder;
+    }
+
+    /** Get Campaign and Child Campaigns */
+    private static Set<Id> collectParentAndImmediateChildren(Id parentId) {
+        Set<Id> ids = new Set<Id>{ parentId };
+        for (Campaign c : [SELECT Id FROM Campaign WHERE ParentId = :parentId LIMIT 5000]) {
+            ids.add(c.Id);
+        }
+        return ids;
+    }
 
     /**
      * Retrieves Person Account by email. If not found, creates one using the email as name.

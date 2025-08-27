@@ -162,6 +162,8 @@ public without sharing class CLA_FormUtils {
             throw new AuraHandledException(CLA_FormConstants.ERR_ORDER_CREATE);
         }
 
+        System.debug('RETAILER: '+input.get('retailerId'));
+
         Order order = new Order(
             AccountId = account.Id,
             EffectiveDate = Date.today(),
@@ -171,8 +173,10 @@ public without sharing class CLA_FormUtils {
                 .get(CLA_FormConstants.RECORD_TYPE_ORDER_ALLOCATION).getRecordTypeId(),
             Pricebook2Id = getStandardPricebookId(),
             Campaign__c = (String) input.get('campaignId'),
-            CLA_Location__c = (String) input.get('pickupLocation')
+            CLA_Location__c = (String) input.get('pickupLocation'),
+            Distributor_Retailer__c = (String) input.get('retailerId')
         );
+        System.debug('ORDER RET: '+order.Distributor_Retailer__c);
         insert order;
         return order;
     }
@@ -228,6 +232,9 @@ public without sharing class CLA_FormUtils {
             Boolean pink2022 = input.containsKey('wishlistVintagePink2022') ? (Boolean) input.get('wishlistVintagePink2022') : false;
             List<Object> productEntries = (List<Object>) input.get('products');
             String campaignId  = (String) input.get('campaignId');
+            String retailerIdStr = input.containsKey('retailerId') ? (String) input.get('retailerId') : null;
+            String retailerNameText = input.containsKey('retailerNameText') ? (String) input.get('retailerNameText') : null;
+            Id retailerId;
 
     
             if (String.isBlank(email)) {
@@ -245,6 +252,19 @@ public without sharing class CLA_FormUtils {
                 e.setMessage(CLA_FormConstants.ERR_ORDERITEM_CREATE);
                 throw e;
             }
+
+            if (String.isBlank(retailerIdStr) && !String.isBlank(retailerNameText)) {
+                if (!Schema.sObjectType.Retailer__c.isCreateable()) {
+                    throw new AuraHandledException('No permission to create Retailers.');
+                }
+                Retailer__c newRet = new Retailer__c(Name = retailerNameText);
+                insert newRet;
+                retailerId = newRet.Id;
+            } else if (!String.isBlank(retailerIdStr)) {
+                retailerId = (Id) retailerIdStr;
+            }
+
+            input.put('retailerId', retailerId);
 
             // Construct Person Account Input
             CLA_FormUtils.PersonAccountInput personInput = new CLA_FormUtils.PersonAccountInput();
