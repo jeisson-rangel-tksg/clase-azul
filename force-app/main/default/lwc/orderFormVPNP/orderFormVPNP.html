@@ -221,6 +221,56 @@
                                     required>
                                 </lightning-combobox>
                             </lightning-layout-item>
+
+                            <template if:true={isLiquorStoreNearMe}>
+
+                                    <!-- Mailing Street -->
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">Mailing Street</span>
+                                        </div>
+                                        <lightning-input
+                                            variant="label-hidden"
+                                            name="street"
+                                            value={street}
+                                            onchange={handleInputChange}
+                                            required>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+
+                                    <!-- City -->
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">City</span>
+                                        </div>
+                                        <lightning-input
+                                            variant="label-hidden"
+                                            name="city"
+                                            value={city}
+                                            onchange={handleInputChange}
+                                            required>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+
+                                    <!-- ZIP -->
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">ZIP/Postal Code</span>
+                                        </div>
+                                        <lightning-input
+                                            variant="label-hidden"
+                                            name="zip"
+                                            value={zip}
+                                            onchange={handleInputChange}
+                                            required>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+
+                            </template>
+
                         </lightning-layout>
                     </template>
                     <template lwc:else>
@@ -258,6 +308,56 @@
                                     required>
                                 </lightning-combobox>
                             </lightning-layout-item>
+
+                            <template if:true={isLiquorStoreNearMe}>
+
+                                    <!-- Mailing Street -->
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">Mailing Street</span>
+                                        </div>
+                                        <lightning-input
+                                            variant="label-hidden"
+                                            name="street"
+                                            value={street}
+                                            onchange={handleInputChange}
+                                            required>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+
+                                    <!-- City -->
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">City</span>
+                                        </div>
+                                        <lightning-input
+                                            variant="label-hidden"
+                                            name="city"
+                                            value={city}
+                                            onchange={handleInputChange}
+                                            required>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+
+                                    <!-- ZIP -->
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">ZIP/Postal Code</span>
+                                        </div>
+                                        <lightning-input
+                                            variant="label-hidden"
+                                            name="zip"
+                                            value={zip}
+                                            onchange={handleInputChange}
+                                            required>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+
+                            </template>
+                            
                         </lightning-layout>
                     </template>
                     <div class="slds-box slds-m-around_medium">
