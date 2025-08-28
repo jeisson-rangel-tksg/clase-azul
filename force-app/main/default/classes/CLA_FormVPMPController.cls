@@ -269,6 +269,18 @@ public without sharing class CLA_FormVPMPController {
             accToUpdate.State__pc = (String) input.get('state');
         }
 
+        if (input.containsKey('street')) {
+            accToUpdate.PersonMailingStreet = (String) input.get('street');
+        }
+
+        if (input.containsKey('city')){
+            accToUpdate.PersonMailingCity = (String) input.get('city');
+        }
+
+        if (input.containsKey('zip')) { 
+            accToUpdate.PersonMailingPostalCode = (String) input.get('zip');
+        }
+        
         update accToUpdate;
     }
 

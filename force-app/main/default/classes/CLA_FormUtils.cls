@@ -125,6 +125,9 @@ public without sharing class CLA_FormUtils {
                 AccountSource = CLA_FormConstants.DEFAULT_ACCOUNT_SOURCE,
                 CLA_Fuente__c = input.source.toUpperCase(),
                 CLA_SubCategory__c = input.subcategory,
+                PersonMailingStreet     = input.mailingStreet,
+                PersonMailingCity       = input.mailingCity,
+                PersonMailingPostalCode = input.mailingPostalCode,
                 RecordTypeId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName()
                     .get(CLA_FormConstants.RECORD_TYPE_PERSON_ACCOUNT).getRecordTypeId()
             );
@@ -278,6 +281,10 @@ public without sharing class CLA_FormUtils {
             personInput.region = input.containsKey('region') ? (String) input.get('region') : null;
             personInput.country = input.containsKey('country') ? (String) input.get('country') : null;
             personInput.state = input.containsKey('state') ? (String) input.get('state') : null;
+            personInput.mailingStreet = input.containsKey('street') ? (String) input.get('street') : null;
+            personInput.mailingCity = input.containsKey('city') ? (String) input.get('city') : null;
+            personInput.mailingPostalCode = input.containsKey('zip') ? (String) input.get('zip') : null;
+
 
             // Obtain campaign
             Campaign campaign = new Campaign();
@@ -378,6 +385,10 @@ public without sharing class CLA_FormUtils {
         @AuraEnabled public Date birthdate;
         @AuraEnabled public String source;
         @AuraEnabled public String subcategory;
+        @AuraEnabled public String mailingStreet;
+        @AuraEnabled public String mailingCity;
+        @AuraEnabled public String mailingPostalCode;
+
     }
 
     /**

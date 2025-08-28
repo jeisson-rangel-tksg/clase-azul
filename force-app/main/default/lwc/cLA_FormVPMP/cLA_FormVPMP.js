@@ -60,6 +60,8 @@ export default class CampaignOrderComponent extends LightningElement {
     @track country = '';
     @track state = '';
 
+    @track street = '';
+
     @track isEmailDisabled = false;
     isEmailFromUrl = false;
 
@@ -417,6 +419,7 @@ export default class CampaignOrderComponent extends LightningElement {
             state: this.state,
             phone: this.phone,
             birthdate: this.birthdate,
+            street: this.street,
             city: this.city,
             zip: this.zip,
             campaignId: this.campaignId,
@@ -435,10 +438,13 @@ export default class CampaignOrderComponent extends LightningElement {
         this.isLoading = true;
         createOrders({ input: orderRequest })
             .then(() => {
+                return this.fetchAccountByEmail();
+            })
+            .then(() => {
             this.isNewOrderOpen = true;
             this.products = this.mapProducts(this.products);
 
-            if (this.accountId && (this.showMissingBirthdate || this.showMissingLocationFields)) {
+            if (this.accountId && (this.showMissingBirthdate || this.showMissingLocationFields || this.isLiquorStoreNearMe)) {
                 const updatePayload = {
                     accountId: this.accountId
                 };
@@ -447,6 +453,10 @@ export default class CampaignOrderComponent extends LightningElement {
                 if (this.showMissingLocationFields && this.selectedRegion) updatePayload.region = this.selectedRegion;
                 if (this.showMissingLocationFields && this.country) updatePayload.country = this.country;
                 if (this.showMissingLocationFields && this.state) updatePayload.state = this.state;
+
+                if (this.street) updatePayload.street = this.street;
+                if (this.city)   updatePayload.city   = this.city;
+                if (this.zip)    updatePayload.zip    = this.zip;
 
                 updateMissingAccountFields({ input: updatePayload })
                     .catch(err => console.error('Failed to update missing fields:', err));
