@@ -230,19 +230,22 @@ public without sharing class CLA_FormUtils {
             String email = (String) input.get('email');
             Boolean optIn = input.containsKey('optInAnnualNewsletter') ? (Boolean) input.get('optInAnnualNewsletter') : null;
             Boolean pink2022 = input.containsKey('wishlistVintagePink2022') ? (Boolean) input.get('wishlistVintagePink2022') : false;
+            List<Object> wishlistSelections = (List<Object>) input.get('wishlistSelections');
             List<Object> productEntries = (List<Object>) input.get('products');
             String campaignId  = (String) input.get('campaignId');
             String retailerIdStr = input.containsKey('retailerId') ? (String) input.get('retailerId') : null;
             String retailerNameText = input.containsKey('retailerNameText') ? (String) input.get('retailerNameText') : null;
             Id retailerId;
 
+            Boolean hasProducts = (productEntries != null && !productEntries.isEmpty());
+            Boolean hasWishlist = (wishlistSelections != null && !wishlistSelections.isEmpty());
     
             if (String.isBlank(email)) {
                 AuraHandledException e = new AuraHandledException(CLA_FormConstants.ERR_EMAIL_REQUIRED);
                 e.setMessage(CLA_FormConstants.ERR_EMAIL_REQUIRED);
                 throw e;
             }
-            if ((productEntries == null || productEntries.isEmpty()) && (pink2022 == null || !pink2022)) {
+            if (!hasProducts && !hasWishlist) {
                 AuraHandledException e = new AuraHandledException(CLA_FormConstants.ERR_PRODUCTS_REQUIRED);
                 e.setMessage(CLA_FormConstants.ERR_PRODUCTS_REQUIRED);
                 throw e;
@@ -263,8 +266,6 @@ public without sharing class CLA_FormUtils {
             } else if (!String.isBlank(retailerIdStr)) {
                 retailerId = (Id) retailerIdStr;
             }
-
-            input.put('retailerId', retailerId);
 
             // Construct Person Account Input
             CLA_FormUtils.PersonAccountInput personInput = new CLA_FormUtils.PersonAccountInput();
@@ -308,12 +309,28 @@ public without sharing class CLA_FormUtils {
                 insert orderItems;
             }
 
-            if (pink2022) {
-                CLA_Interest__c interest = new CLA_Interest__c(
-                    CLA_MainInterest__c = CLA_FormConstants.MAIN_INTEREST_PINK_2022, 
-                    CLA_Interest__c = CLA_FormConstants.INTEREST_PINK_2022, 
-                    Account__c = personAccount.Id);
-                insert interest;
+            if (hasWishlist) {
+
+                List<CLA_Interest__c> interests = new List<CLA_Interest__c>();
+
+                if (wishlistSelections != null) {
+                    for (Object o : wishlistSelections) {
+                        Map<Object, Object> sel = (Map<Object, Object>) o;
+                        String mainI = (String) sel.get('mainInterest');
+                        String subI  = (String) sel.get('subInterest');
+                        if (String.isBlank(mainI) || String.isBlank(subI)) continue;
+
+                        interests.add(new CLA_Interest__c(
+                            CLA_MainInterest__c = mainI,
+                            CLA_Interest__c     = subI,
+                            Account__c          = personAccount.Id
+                        ));
+                    }
+                }
+
+                if (!interests.isEmpty()) {
+                    insert interests;
+                }
             }
     
         } catch (AuraHandledException e) {

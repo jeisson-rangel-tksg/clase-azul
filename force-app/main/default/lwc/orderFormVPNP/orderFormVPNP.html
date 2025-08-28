@@ -262,31 +262,34 @@
                     </template>
                     <div class="slds-box slds-m-around_medium">
 
-                        <!-- Wishlist checkbox with SLDS spacing -->
-                        <lightning-layout multiple-rows="true" 
-                            class="slds-grid_vertical-align-center slds-p-horizontal_small">
-                            <lightning-layout-item size="12" medium-device-size="1">
-                                <lightning-input
-                                    type="checkbox"
-                                    variant="label-hidden"
-                                    name="wishlistVintagePink2022"
-                                    checked={wishlistedVintagePink2022}
-                                    onchange={handleWishlistChange}
-                                    class="slds-checkbox slds-p-around_small">
-                                </lightning-input>
-                            </lightning-layout-item>
+                        <!-- Wishlist section -->
+                        <template if:true={wishlists.length}>
+                            <div>
+                                <template for:each={wishlists} for:item="w" for:index="wIndex">
+                                    <div key={w.id}>
+                                        <lightning-layout multiple-rows="true" class="slds-grid_vertical-align-center slds-p-horizontal_small">
+                                            <lightning-layout-item size="12" medium-device-size="1">
+                                                <lightning-input
+                                                    type="checkbox"
+                                                    name="wishlist"
+                                                    data-index={wIndex}
+                                                    checked={w.selected}
+                                                    onchange={handleWishlistItemChange}
+                                                    class="slds-checkbox slds-p-around_small">
+                                                </lightning-input>
+                                            </lightning-layout-item>
 
-                            <lightning-layout-item size="12" medium-device-size="11">
-                                <div class="custom-label-stacked">
-                                    <div class="main-label">
-                                        Mark this box if you are interested in adding our vintage item Clase Azul Pink 2022 to your wishlist.
+                                            <lightning-layout-item size="12" medium-device-size="11">
+                                                <div class="custom-label-stacked">
+                                                    <div class="main-label">{w.labelEn}</div>
+                                                    <div class="sub-label">{w.labelEs}</div>
+                                                </div>
+                                            </lightning-layout-item>
+                                        </lightning-layout>
                                     </div>
-                                    <div class="sub-label">
-                                         Marca esta casilla si estás interesado en agregar nuestro artículo vintage Clase Azul Pink 2022 a tu lista de deseos.
-                                    </div>
-                                </div>
-                            </lightning-layout-item>
-                        </lightning-layout>
+                                </template>
+                            </div>
+                        </template>
 
                         <p class="slds-m-top_medium">Submission of this form does not guarantee allocation.  <span class="gray">/ El registro de este formulario no garantiza el producto.</span></p>
                         <p class="slds-m-top_medium">Adding this item to your wishlist does not guarantee the acquisition of this product. <span class="gray">/ Agregar este artículo a tu lista de deseos no garantiza la adquisición del producto.</span></p>

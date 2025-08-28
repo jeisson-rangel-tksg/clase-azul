@@ -221,6 +221,50 @@
                                     required>
                                 </lightning-combobox>
                             </lightning-layout-item>
+
+                            <!-- Retailer picker section (conditional when pickup is 'Liquor Store Near Me') -->
+                            <template if:true={isLiquorStoreNearMe}>
+                                <lightning-layout multiple-rows="true" class="slds-m-top_small">
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <lightning-record-picker
+                                            lwc:if={showRetailerPicker}
+                                            object-api-name="Retailer__c"
+                                            label="Retailer"
+                                            placeholder="Search retailers"
+                                            matching-info={retailerFields}
+                                            value={retailerId}
+                                            onchange={handleRetailerChange}>
+                                        </lightning-record-picker>
+
+                                        <!-- Free-text fallback when user can't find a retailer -->
+                                        <template lwc:if={retailerNotFound}>
+                                            <div class="custom-label">
+                                                <span class="required">*</span>
+                                                <span class="main-label">Retailer Name</span>
+                                            </div>
+                                            <lightning-input
+                                                variant="label-hidden"
+                                                name="retailerFreeText"
+                                                value={retailerFreeText}
+                                                maxlength="80"
+                                                onchange={handleInputChange}
+                                                placeholder="Type your retailer name (max 80)">
+                                            </lightning-input>
+                                        </template>
+                                    </lightning-layout-item>
+
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small" class="slds-m-top_x-large">
+                                        <lightning-input
+                                            type="checkbox"
+                                            name="retailerNotFound"
+                                            label="Retailer not listed"
+                                            checked={retailerNotFound}
+                                            onchange={handleRetailerNotFoundToggle}>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+                                </lightning-layout>
+                            </template>
+
                         </lightning-layout>
                     </template>
                     <template lwc:else>
@@ -258,6 +302,49 @@
                                     required>
                                 </lightning-combobox>
                             </lightning-layout-item>
+
+                            <!-- Retailer picker section (conditional when pickup is 'Liquor Store Near Me') -->
+                            <template if:true={isLiquorStoreNearMe}>
+                                <lightning-layout multiple-rows="true" class="slds-m-top_small">
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <lightning-record-picker
+                                            lwc:if={showRetailerPicker}
+                                            object-api-name="Retailer__c"
+                                            label="Retailer"
+                                            placeholder="Search retailers"
+                                            matching-info={retailerFields}
+                                            value={retailerId}
+                                            onchange={handleRetailerChange}>
+                                        </lightning-record-picker>
+
+                                        <!-- Free-text fallback when user can't find a retailer -->
+                                        <template lwc:if={retailerNotFound}>
+                                            <div class="custom-label">
+                                                <span class="required">*</span>
+                                                <span class="main-label">Retailer Name</span>
+                                            </div>
+                                            <lightning-input
+                                                variant="label-hidden"
+                                                name="retailerFreeText"
+                                                value={retailerFreeText}
+                                                maxlength="80"
+                                                onchange={handleInputChange}
+                                                placeholder="Type your retailer name (max 80)">
+                                            </lightning-input>
+                                        </template>
+                                    </lightning-layout-item>
+
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small" class="slds-m-top_x-large">
+                                        <lightning-input
+                                            type="checkbox"
+                                            name="retailerNotFound"
+                                            label="Retailer not listed"
+                                            checked={retailerNotFound}
+                                            onchange={handleRetailerNotFoundToggle}>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+                                </lightning-layout>
+                            </template>
                         </lightning-layout>
                     </template>
                     <div class="slds-box slds-m-around_medium">
@@ -305,31 +392,35 @@
                             </div>
                         </template>
 
-                        <!-- Wishlist checkbox with SLDS spacing -->
-                        <lightning-layout multiple-rows="true" 
-                            class="slds-grid_vertical-align-center slds-p-horizontal_small">
-                            <lightning-layout-item size="12" medium-device-size="1">
-                                <lightning-input
-                                    type="checkbox"
-                                    variant="label-hidden"
-                                    name="wishlistVintagePink2022"
-                                    checked={wishlistedVintagePink2022}
-                                    onchange={handleWishlistChange}
-                                    class="slds-checkbox slds-p-around_small">
-                                </lightning-input>
-                            </lightning-layout-item>
+                        <!-- Wishlist section -->
+                        <template if:true={wishlists.length}>
+                            <div>
+                                <template for:each={wishlists} for:item="w" for:index="wIndex">
+                                    <div key={w.id}>
+                                        <lightning-layout multiple-rows="true" class="slds-grid_vertical-align-center slds-p-horizontal_small">
+                                            <lightning-layout-item size="12" medium-device-size="1">
+                                                <lightning-input
+                                                    type="checkbox"
+                                                    name="wishlist"
+                                                    data-index={wIndex}
+                                                    checked={w.selected}
+                                                    onchange={handleWishlistItemChange}
+                                                    class="slds-checkbox slds-p-around_small">
+                                                </lightning-input>
+                                            </lightning-layout-item>
 
-                            <lightning-layout-item size="12" medium-device-size="11">
-                                <div class="custom-label-stacked">
-                                    <div class="main-label">
-                                        Mark this box if you are interested in adding our vintage item Clase Azul Pink 2022 to your wishlist.
+                                            <lightning-layout-item size="12" medium-device-size="11">
+                                                <div class="custom-label-stacked">
+                                                    <div class="main-label">{w.labelEn}</div>
+                                                    <div class="sub-label">{w.labelEs}</div>
+                                                </div>
+                                            </lightning-layout-item>
+                                        </lightning-layout>
                                     </div>
-                                    <div class="sub-label">
-                                         Marca esta casilla si estás interesado en agregar nuestro artículo vintage Clase Azul Pink 2022 a tu lista de deseos.
-                                    </div>
-                                </div>
-                            </lightning-layout-item>
-                        </lightning-layout>
+                                </template>
+                            </div>
+                        </template>
+
 
                         <p class="slds-m-top_medium">Desired # of decanters is based upon availability and will be confirmed by your Client Advisor. Submission of this form does not guarantee allocation. <span class="gray">/ # deseado de licoreras sujeto a disponibilidad, será confirmado por su Client Advisor. El registro de este formulario no garantiza el producto.</span></p>
                         <p class="slds-m-top_medium">Submission of this form does not guarantee allocation.  <span class="gray">/ El registro de este formulario no garantiza el producto.</span></p>

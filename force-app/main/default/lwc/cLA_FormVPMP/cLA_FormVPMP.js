@@ -7,6 +7,7 @@ import getCampaignProducts from '@salesforce/apex/CLA_FormVPMPController.getCamp
 //import getPickupLocationsAndProductsByCampaign from '@salesforce/apex/CLA_FormVPMPController.getPickupLocationsAndProductsByCampaign';
 import getPersonAccountByEmail from '@salesforce/apex/CLA_FormVPMPController.getPersonAccountByEmail';
 import canUserCreateOrder from '@salesforce/apex/CLA_FormVPMPController.canUserCreateOrder';
+import getCampaignWishlists from '@salesforce/apex/CLA_FormVPMPController.getCampaignWishlists';
 import createOrders from '@salesforce/apex/CLA_FormVPMPController.createOrders';
 import isCampaignActive from '@salesforce/apex/CLA_FormVPMPController.isCampaignActive';
 import updateMissingAccountFields from '@salesforce/apex/CLA_FormVPMPController.updateMissingAccountFields';
@@ -74,6 +75,8 @@ export default class CampaignOrderComponent extends LightningElement {
     @track retailerId = '';
     @track retailerFreeText = '';
     @track retailerNotFound = false;
+
+    @track wishlists = [];
 
     retailerFields = {
         primaryField: { fieldPath: 'Name' }
@@ -170,9 +173,10 @@ export default class CampaignOrderComponent extends LightningElement {
     initializeComponent() {
         Promise.all([
             getCampaignProducts({ campaignId: this.campaignId }),
-            getPickupLocationsFromCampaign({ campaignId: this.campaignId })
+            getPickupLocationsFromCampaign({ campaignId: this.campaignId }),
+            getCampaignWishlists({ campaignId: this.campaignId })
         ])
-        .then(([productsResult, pickupResult]) => {
+        .then(([productsResult, pickupResult, wishlistResult]) => {
             if (!productsResult || productsResult.length === 0) {
                 this.isInvalidCampaignModalOpen = true;
             } else {
@@ -184,6 +188,11 @@ export default class CampaignOrderComponent extends LightningElement {
                     this.selectedPickupLocation = pickupResult[0].value;
                     this.isPickupLocationDisabled = true;
                 }
+
+                this.wishlists = (wishlistResult || []).map(w => ({
+                    ...w,
+                    selected: false
+                }));
 
                 this.isComponentReady = true;
             }
@@ -394,6 +403,10 @@ export default class CampaignOrderComponent extends LightningElement {
             return;
         }
 
+        const wishlistSelections = this.wishlists
+            .filter(w => w.selected)
+            .map(w => ({ mainInterest: w.mainInterest, subInterest: w.subInterest }));
+
         const rawRequest = {
             email: this.email,
             optInAnnualNewsletter: this.optInAnnualNewsletter,
@@ -410,7 +423,8 @@ export default class CampaignOrderComponent extends LightningElement {
             pickupLocation: this.selectedPickupLocation,
             products: formattedProducts,
             retailerId: this.retailerId,
-            retailerNameText: this.retailerFreeText
+            retailerNameText: this.retailerFreeText,
+            wishlistSelections
         };
         
         // Filter out null or undefined fields
@@ -462,6 +476,16 @@ export default class CampaignOrderComponent extends LightningElement {
 
     closeOrderNotAllowedModal() {
         this.isOrderNotAllowedModalOpen = false;
+    }
+
+    handleWishlistItemChange(event) {
+        const idx = parseInt(event.target.dataset.index, 10);
+        const checked = event.target.checked;
+        const arr = [...this.wishlists];
+        if (!isNaN(idx) && arr[idx]) {
+            arr[idx].selected = checked;
+            this.wishlists = arr;
+        }
     }
 
     // -------------------------------

@@ -158,6 +158,10 @@ public without sharing class CLA_FormVPMPController {
 
         if (String.isBlank(campaignId) || String.isBlank(email)) return true;
 
+        if (isEventOrLaunch(campaignId)) {
+            return true;
+        }
+
         Set<Id> scopeCampaignIds = collectParentAndImmediateChildren(campaignId);
 
         Account pa = [
@@ -186,6 +190,16 @@ public without sharing class CLA_FormVPMPController {
         ] > 0;
 
         return !hasOrder;
+    }
+
+    private static Boolean isEventOrLaunch(Id campaignId) {
+        return [
+            SELECT COUNT()
+            FROM Campaign
+            WHERE Id = :campaignId
+            AND (Type = 'Event' OR Type = 'Launch')
+            LIMIT 1
+        ] > 0;
     }
 
     /** Get Campaign and Child Campaigns */
@@ -262,6 +276,43 @@ public without sharing class CLA_FormVPMPController {
     @AuraEnabled
     public static void createOrders(Map<String, Object> input) {
         CLA_FormUtils.createOrderWithItems(input);
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<WishlistOption> getCampaignWishlists(Id campaignId) {
+        if (String.isBlank(campaignId)) {
+            return new List<WishlistOption>();
+        }
+
+        List<WishlistOption> result = new List<WishlistOption>();
+        for (Campaign_Wishlist__c wl : [
+            SELECT Id, Label_EN__c, Label_ES__c, Main_Interest__c, Sub_Interest__c
+            FROM Campaign_Wishlist__c
+            WHERE Campaign__c = :campaignId
+            ORDER BY CreatedDate ASC
+        ]) {
+            result.add(new WishlistOption(
+                wl.Id,
+                wl.Label_EN__c,
+                wl.Label_ES__c,
+                wl.Main_Interest__c,
+                wl.Sub_Interest__c
+            ));
+        }
+        return result;
+    }
+
+    public class WishlistOption {
+        @AuraEnabled public Id id;
+        @AuraEnabled public String labelEn;
+        @AuraEnabled public String labelEs;
+        @AuraEnabled public String mainInterest;
+        @AuraEnabled public String subInterest;
+
+        public WishlistOption(Id id, String en, String es, String mainI, String subI) {
+            this.id = id; this.labelEn = en; this.labelEs = es;
+            this.mainInterest = mainI; this.subInterest = subI;
+        }
     }
 
     /**
