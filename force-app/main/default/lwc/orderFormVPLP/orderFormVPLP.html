@@ -222,7 +222,7 @@
                                 </lightning-combobox>
                             </lightning-layout-item>
 
-                            <!-- Retailer picker section (conditional when pickup is 'Liquor Store Near Me') -->
+                            <!-- Retailer picker section (conditional when pickup is 'Liquor Store Near Me')
                             <template if:true={isLiquorStoreNearMe}>
                                 <lightning-layout multiple-rows="true" class="slds-m-top_small">
                                     <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
@@ -236,7 +236,6 @@
                                             onchange={handleRetailerChange}>
                                         </lightning-record-picker>
 
-                                        <!-- Free-text fallback when user can't find a retailer -->
                                         <template lwc:if={retailerNotFound}>
                                             <div class="custom-label">
                                                 <span class="required">*</span>
@@ -263,7 +262,7 @@
                                         </lightning-input>
                                     </lightning-layout-item>
                                 </lightning-layout>
-                            </template>
+                            </template> -->
 
                         </lightning-layout>
                     </template>
@@ -303,7 +302,7 @@
                                 </lightning-combobox>
                             </lightning-layout-item>
 
-                            <!-- Retailer picker section (conditional when pickup is 'Liquor Store Near Me') -->
+                            <!-- Retailer picker section (conditional when pickup is 'Liquor Store Near Me')
                             <template if:true={isLiquorStoreNearMe}>
                                 <lightning-layout multiple-rows="true" class="slds-m-top_small">
                                     <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
@@ -317,7 +316,6 @@
                                             onchange={handleRetailerChange}>
                                         </lightning-record-picker>
 
-                                        <!-- Free-text fallback when user can't find a retailer -->
                                         <template lwc:if={retailerNotFound}>
                                             <div class="custom-label">
                                                 <span class="required">*</span>
@@ -344,7 +342,8 @@
                                         </lightning-input>
                                     </lightning-layout-item>
                                 </lightning-layout>
-                            </template>
+                            </template> -->
+
                         </lightning-layout>
                     </template>
                     <div class="slds-box slds-m-around_medium">
