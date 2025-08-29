@@ -1,0 +1,51 @@
+:host{
+    --lwc-inputStaticFontSize: 16px;
+    --lwc-inputStaticFontWeight: bold;
+ }
+
+ :host {
+    --sds-c-card-color-background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    -webkit-border-radius: 8px;
+    -moz-border-radius: 8px;
+    -ms-border-radius: 8px;
+    -o-border-radius: 8px;;
+}
+
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 70vh; /* This centers it vertically */
+    padding: 2rem;
+}
+
+.login-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    width: 100%;
+    max-width: 500px;
+}
+
+.custom-label {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.required {
+    color: red;
+    margin-right: 4px;
+}
+
+.custom-checkbox-label {
+    font-size: 0.75rem;
+    color: #666;
+    white-space: nowrap;
+}
+.button-group {
+    display: inline-flex;
+    gap: 0.75rem;
+    justify-content: center;
+}
