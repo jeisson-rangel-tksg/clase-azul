@@ -87,74 +87,130 @@ public without sharing class CLA_FormVPMPController {
 
         try {
 
-            // 1. Query all campaign-linked almacenes
-            List<Almacen_de_campa_a__c> almacenLinks = [
-                SELECT Id, Name, Almacen__r.Id, Almacen__r.Name
-                FROM Almacen_de_campa_a__c
-                WHERE Campaign__c = :campaignId
-            ];
+        //     // 1. Query all campaign-linked almacenes
+        //     List<Almacen_de_campa_a__c> almacenLinks = [
+        //         SELECT Id, Name, Almacen__r.Id, Almacen__r.Name
+        //         FROM Almacen_de_campa_a__c
+        //         WHERE Campaign__c = :campaignId
+        //     ];
 
-            if (almacenLinks.isEmpty()) {
-                return new PickupResponse(pickupOptions, productsByLocation);
-            }
+        //     if (almacenLinks.isEmpty()) {
+        //         return new PickupResponse(pickupOptions, productsByLocation);
+        //     }
 
-            Map<Id, Almacen_de_campa_a__c> almacenLinkByAlmacenId = new Map<Id, Almacen_de_campa_a__c>();
-            Set<Id> almacenIds = new Set<Id>();
+        //     Map<Id, Almacen_de_campa_a__c> almacenLinkByAlmacenId = new Map<Id, Almacen_de_campa_a__c>();
+        //     Set<Id> almacenIds = new Set<Id>();
 
-            for (Almacen_de_campa_a__c link : almacenLinks) {
-                if (link.Almacen__r != null) {
-                    almacenIds.add(link.Almacen__r.Id);
-                    almacenLinkByAlmacenId.put(link.Almacen__r.Id, link);
-                }
-            }
+        //     for (Almacen_de_campa_a__c link : almacenLinks) {
+        //         if (link.Almacen__r != null) {
+        //             almacenIds.add(link.Almacen__r.Id);
+        //             almacenLinkByAlmacenId.put(link.Almacen__r.Id, link);
+        //         }
+        //     }
 
-            // 2. Query Inventario__c records with quantity > 0
-            List<Inventario__c> inventarios = [
-                SELECT Product__r.Id, Product__r.Name, Product__r.Description, Product__r.Family,
-                    Almacen__r.Id, Almacen__r.Name,
-                    Quantity__c
-                FROM Inventario__c
-                WHERE Almacen__r.Id IN :almacenIds
-                AND Quantity__c > 0
-            ];
+        //     // 2. Query Inventario__c records with quantity > 0
+        //     List<Inventario__c> inventarios = [
+        //         SELECT Product__r.Id, Product__r.Name, Product__r.Description, Product__r.Family,
+        //             Almacen__r.Id, Almacen__r.Name,
+        //             Quantity__c
+        //         FROM Inventario__c
+        //         WHERE Almacen__r.Id IN :almacenIds
+        //         AND Quantity__c > 0
+        //     ];
 
-            // 3. Group products by almacen name
-            Map<String, List<Product2>> tempProductMap = new Map<String, List<Product2>>();
-            Set<Id> validAlmacenIds = new Set<Id>();
+        //     // 3. Group products by almacen name
+        //     Map<String, List<Product2>> tempProductMap = new Map<String, List<Product2>>();
+        //     Set<Id> validAlmacenIds = new Set<Id>();
 
-            for (Inventario__c inv : inventarios) {
-                Id almacenId = inv.Almacen__r?.Id;
-                String almacenName = inv.Almacen__r?.Name;
+        //     for (Inventario__c inv : inventarios) {
+        //         Id almacenId = inv.Almacen__r?.Id;
+        //         String almacenName = inv.Almacen__r?.Name;
 
-                if (almacenId == null || almacenName == null || inv.Product__r == null) continue;
+        //         if (almacenId == null || almacenName == null || inv.Product__r == null) continue;
 
-                if (!tempProductMap.containsKey(almacenName)) {
-                    tempProductMap.put(almacenName, new List<Product2>());
-                }
-                tempProductMap.get(almacenName).add(inv.Product__r);
-                validAlmacenIds.add(almacenId); // track only almacenes with at least 1 product with quantity > 0
-            }
+        //         if (!tempProductMap.containsKey(almacenName)) {
+        //             tempProductMap.put(almacenName, new List<Product2>());
+        //         }
+        //         tempProductMap.get(almacenName).add(inv.Product__r);
+        //         validAlmacenIds.add(almacenId); // track only almacenes with at least 1 product with quantity > 0
+        //     }
 
-            // 4. Build valid pickup options
-            for (Id almacenId : validAlmacenIds) {
-                Almacen_de_campa_a__c link = almacenLinkByAlmacenId.get(almacenId);
-                if (link != null && link.Almacen__r?.Name != null && link.Name != null) {
-                    pickupOptions.add(new PickupLocationOption(
-                        link.Almacen__r.Name,  // value
-                        link.Name              // label
-                    ));
+        //     // 4. Build valid pickup options
+        //     for (Id almacenId : validAlmacenIds) {
+        //         Almacen_de_campa_a__c link = almacenLinkByAlmacenId.get(almacenId);
+        //         if (link != null && link.Almacen__r?.Name != null && link.Name != null) {
+        //             pickupOptions.add(new PickupLocationOption(
+        //                 link.Almacen__r.Name,  // value
+        //                 link.Name              // label
+        //             ));
 
-                    productsByLocation.put(link.Almacen__r.Name, tempProductMap.get(link.Almacen__r.Name));
-                }
-            }
+        //             productsByLocation.put(link.Almacen__r.Name, tempProductMap.get(link.Almacen__r.Name));
+        //         }
+        //     }
+        // 
         } catch (Exception e) {
             System.debug(e);
         }
-        System.debug('Pickup options: ' + pickupOptions);
-        System.debug('Products by location: ' + productsByLocation);
         return new PickupResponse(pickupOptions, productsByLocation);
     }
 
+    @AuraEnabled(cacheable=true)
+    public static Boolean canUserCreateOrder(Id campaignId, String email) {
+
+        if (String.isBlank(campaignId) || String.isBlank(email)) return true;
+
+        if (isEventOrLaunch(campaignId)) {
+            return true;
+        }
+
+        Set<Id> scopeCampaignIds = collectParentAndImmediateChildren(campaignId);
+
+        Account pa = [
+            SELECT Id, PersonContactId
+            FROM Account
+            WHERE IsPersonAccount = true AND PersonEmail = :email
+            LIMIT 1
+        ];
+        if (pa == null) return true;
+        if (pa.PersonContactId == null) return true;
+       
+        Integer cmCount = [
+            SELECT COUNT()
+            FROM CampaignMember
+            WHERE CampaignId IN :scopeCampaignIds
+            AND ContactId = :pa.PersonContactId
+        ];
+        if (cmCount == 0) return false;
+
+        Boolean hasOrder = [
+            SELECT COUNT()
+            FROM Order
+            WHERE AccountId = :pa.Id
+            AND Campaign__c IN :scopeCampaignIds
+            LIMIT 1
+        ] > 0;
+
+        return !hasOrder;
+    }
+
+    private static Boolean isEventOrLaunch(Id campaignId) {
+        return [
+            SELECT COUNT()
+            FROM Campaign
+            WHERE Id = :campaignId
+            AND (Type = 'Event' OR Type = 'Launch')
+            LIMIT 1
+        ] > 0;
+    }
+
+    /** Get Campaign and Child Campaigns */
+    private static Set<Id> collectParentAndImmediateChildren(Id parentId) {
+        Set<Id> ids = new Set<Id>{ parentId };
+        for (Campaign c : [SELECT Id FROM Campaign WHERE ParentId = :parentId LIMIT 5000]) {
+            ids.add(c.Id);
+        }
+        return ids;
+    }
 
     /**
      * Retrieves Person Account by email. If not found, creates one using the email as name.
@@ -214,6 +270,18 @@ public without sharing class CLA_FormVPMPController {
             accToUpdate.State__pc = (String) input.get('state');
         }
 
+        if (input.containsKey('street')) {
+            accToUpdate.PersonMailingStreet = (String) input.get('street');
+        }
+
+        if (input.containsKey('city')){
+            accToUpdate.PersonMailingCity = (String) input.get('city');
+        }
+
+        if (input.containsKey('zip')) { 
+            accToUpdate.PersonMailingPostalCode = (String) input.get('zip');
+        }
+        
         update accToUpdate;
     }
 
@@ -221,6 +289,43 @@ public without sharing class CLA_FormVPMPController {
     @AuraEnabled
     public static void createOrders(Map<String, Object> input) {
         CLA_FormUtils.createOrderWithItems(input);
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<WishlistOption> getCampaignWishlists(Id campaignId) {
+        if (String.isBlank(campaignId)) {
+            return new List<WishlistOption>();
+        }
+
+        List<WishlistOption> result = new List<WishlistOption>();
+        for (Campaign_Wishlist__c wl : [
+            SELECT Id, Label_EN__c, Label_ES__c, Main_Interest__c, Sub_Interest__c
+            FROM Campaign_Wishlist__c
+            WHERE Campaign__c = :campaignId
+            ORDER BY CreatedDate ASC
+        ]) {
+            result.add(new WishlistOption(
+                wl.Id,
+                wl.Label_EN__c,
+                wl.Label_ES__c,
+                wl.Main_Interest__c,
+                wl.Sub_Interest__c
+            ));
+        }
+        return result;
+    }
+
+    public class WishlistOption {
+        @AuraEnabled public Id id;
+        @AuraEnabled public String labelEn;
+        @AuraEnabled public String labelEs;
+        @AuraEnabled public String mainInterest;
+        @AuraEnabled public String subInterest;
+
+        public WishlistOption(Id id, String en, String es, String mainI, String subI) {
+            this.id = id; this.labelEn = en; this.labelEs = es;
+            this.mainInterest = mainI; this.subInterest = subI;
+        }
     }
 
     /**

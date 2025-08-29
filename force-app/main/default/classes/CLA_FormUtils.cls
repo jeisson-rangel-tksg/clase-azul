@@ -125,6 +125,9 @@ public without sharing class CLA_FormUtils {
                 AccountSource = CLA_FormConstants.DEFAULT_ACCOUNT_SOURCE,
                 CLA_Fuente__c = input.source.toUpperCase(),
                 CLA_SubCategory__c = input.subcategory,
+                PersonMailingStreet     = input.mailingStreet,
+                PersonMailingCity       = input.mailingCity,
+                PersonMailingPostalCode = input.mailingPostalCode,
                 RecordTypeId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName()
                     .get(CLA_FormConstants.RECORD_TYPE_PERSON_ACCOUNT).getRecordTypeId()
             );
@@ -162,6 +165,8 @@ public without sharing class CLA_FormUtils {
             throw new AuraHandledException(CLA_FormConstants.ERR_ORDER_CREATE);
         }
 
+        System.debug('RETAILER: '+input.get('retailerId'));
+
         Order order = new Order(
             AccountId = account.Id,
             EffectiveDate = Date.today(),
@@ -171,8 +176,10 @@ public without sharing class CLA_FormUtils {
                 .get(CLA_FormConstants.RECORD_TYPE_ORDER_ALLOCATION).getRecordTypeId(),
             Pricebook2Id = getStandardPricebookId(),
             Campaign__c = (String) input.get('campaignId'),
-            CLA_Location__c = (String) input.get('pickupLocation')
+            CLA_Location__c = (String) input.get('pickupLocation'),
+            Distributor_Retailer__c = (String) input.get('retailerId')
         );
+        System.debug('ORDER RET: '+order.Distributor_Retailer__c);
         insert order;
         return order;
     }
@@ -226,16 +233,22 @@ public without sharing class CLA_FormUtils {
             String email = (String) input.get('email');
             Boolean optIn = input.containsKey('optInAnnualNewsletter') ? (Boolean) input.get('optInAnnualNewsletter') : null;
             Boolean pink2022 = input.containsKey('wishlistVintagePink2022') ? (Boolean) input.get('wishlistVintagePink2022') : false;
+            List<Object> wishlistSelections = (List<Object>) input.get('wishlistSelections');
             List<Object> productEntries = (List<Object>) input.get('products');
             String campaignId  = (String) input.get('campaignId');
+            String retailerIdStr = input.containsKey('retailerId') ? (String) input.get('retailerId') : null;
+            String retailerNameText = input.containsKey('retailerNameText') ? (String) input.get('retailerNameText') : null;
+            Id retailerId;
 
+            Boolean hasProducts = (productEntries != null && !productEntries.isEmpty());
+            Boolean hasWishlist = (wishlistSelections != null && !wishlistSelections.isEmpty());
     
             if (String.isBlank(email)) {
                 AuraHandledException e = new AuraHandledException(CLA_FormConstants.ERR_EMAIL_REQUIRED);
                 e.setMessage(CLA_FormConstants.ERR_EMAIL_REQUIRED);
                 throw e;
             }
-            if ((productEntries == null || productEntries.isEmpty()) && (pink2022 == null || !pink2022)) {
+            if (!hasProducts && !hasWishlist) {
                 AuraHandledException e = new AuraHandledException(CLA_FormConstants.ERR_PRODUCTS_REQUIRED);
                 e.setMessage(CLA_FormConstants.ERR_PRODUCTS_REQUIRED);
                 throw e;
@@ -244,6 +257,17 @@ public without sharing class CLA_FormUtils {
                 AuraHandledException e = new AuraHandledException(CLA_FormConstants.ERR_ORDERITEM_CREATE);
                 e.setMessage(CLA_FormConstants.ERR_ORDERITEM_CREATE);
                 throw e;
+            }
+
+            if (String.isBlank(retailerIdStr) && !String.isBlank(retailerNameText)) {
+                if (!Schema.sObjectType.Retailer__c.isCreateable()) {
+                    throw new AuraHandledException('No permission to create Retailers.');
+                }
+                Retailer__c newRet = new Retailer__c(Name = retailerNameText);
+                insert newRet;
+                retailerId = newRet.Id;
+            } else if (!String.isBlank(retailerIdStr)) {
+                retailerId = (Id) retailerIdStr;
             }
 
             // Construct Person Account Input
@@ -257,6 +281,10 @@ public without sharing class CLA_FormUtils {
             personInput.region = input.containsKey('region') ? (String) input.get('region') : null;
             personInput.country = input.containsKey('country') ? (String) input.get('country') : null;
             personInput.state = input.containsKey('state') ? (String) input.get('state') : null;
+            personInput.mailingStreet = input.containsKey('street') ? (String) input.get('street') : null;
+            personInput.mailingCity = input.containsKey('city') ? (String) input.get('city') : null;
+            personInput.mailingPostalCode = input.containsKey('zip') ? (String) input.get('zip') : null;
+
 
             // Obtain campaign
             Campaign campaign = new Campaign();
@@ -288,12 +316,28 @@ public without sharing class CLA_FormUtils {
                 insert orderItems;
             }
 
-            if (pink2022) {
-                CLA_Interest__c interest = new CLA_Interest__c(
-                    CLA_MainInterest__c = CLA_FormConstants.MAIN_INTEREST_PINK_2022, 
-                    CLA_Interest__c = CLA_FormConstants.INTEREST_PINK_2022, 
-                    Account__c = personAccount.Id);
-                insert interest;
+            if (hasWishlist) {
+
+                List<CLA_Interest__c> interests = new List<CLA_Interest__c>();
+
+                if (wishlistSelections != null) {
+                    for (Object o : wishlistSelections) {
+                        Map<Object, Object> sel = (Map<Object, Object>) o;
+                        String mainI = (String) sel.get('mainInterest');
+                        String subI  = (String) sel.get('subInterest');
+                        if (String.isBlank(mainI) || String.isBlank(subI)) continue;
+
+                        interests.add(new CLA_Interest__c(
+                            CLA_MainInterest__c = mainI,
+                            CLA_Interest__c     = subI,
+                            Account__c          = personAccount.Id
+                        ));
+                    }
+                }
+
+                if (!interests.isEmpty()) {
+                    insert interests;
+                }
             }
     
         } catch (AuraHandledException e) {
@@ -341,6 +385,10 @@ public without sharing class CLA_FormUtils {
         @AuraEnabled public Date birthdate;
         @AuraEnabled public String source;
         @AuraEnabled public String subcategory;
+        @AuraEnabled public String mailingStreet;
+        @AuraEnabled public String mailingCity;
+        @AuraEnabled public String mailingPostalCode;
+
     }
 
     /**

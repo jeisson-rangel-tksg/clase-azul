@@ -1,0 +1,379 @@
+<template>
+    <lightning-card class="bg-form container">
+        <div class="slds-p-around_medium">
+            <div class="slds-grid slds-grid_align-spread slds-m-bottom_small">
+                <h4><i>Depletions Form</i></h4>
+                <template if:true={showForm}>
+                    <lightning-button
+                        label="Import CSV"
+                        icon-name="utility:upload"
+                        variant="brand-outline"
+                        onclick={handleImportClick}>
+                    </lightning-button>
+                </template>
+                <input type="file" accept=".csv" onchange={handleFileUpload} style="display: none;" class="csv-upload-input" />
+            </div>
+
+            <hr />
+
+            <!-- Auth Section -->
+            <template if:false={showForm}>
+                <div class="login-container slds-grid slds-grid_vertical slds-grid_align-center slds-p-around_large">
+                    <div class="login-card slds-box slds-theme_default slds-size_1-of-1 slds-medium-size_1-of-2">
+                        <div class="slds-text-heading_medium slds-text-align_center slds-m-bottom_medium">
+                            Depletions Login
+                        </div>
+
+                        <lightning-layout multiple-rows="true">
+                            <lightning-layout-item size="12" padding="around-small">
+                                <lightning-input 
+                                label="Tax ID" 
+                                name="taxId" 
+                                value={taxId} 
+                                onchange={handleTaxIdChange} 
+                                required></lightning-input>
+                            </lightning-layout-item>
+                            <lightning-layout-item size="12" padding="around-small">
+                                <lightning-input 
+                                label="Email" 
+                                type="email" 
+                                name="email" 
+                                value={email} 
+                                onchange={handleEmailChange} 
+                                required></lightning-input>
+                            </lightning-layout-item>
+                            <lightning-layout-item size="12" class="slds-text-align_center slds-m-top_medium">
+                                <lightning-button label="Validate" variant="brand" onclick={handleValidate}></lightning-button>
+                            </lightning-layout-item>
+                        </lightning-layout>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Depletion Form Section -->
+            <template if:true={showForm}>
+                <lightning-layout multiple-rows="true">
+                    <!-- Third Party Seller Field + Custom Checkbox Label -->
+                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                        <lightning-layout class="slds-grid slds-grid_vertical-align-end">
+
+                            <!-- Third Party Seller Picker or Input -->
+                            <lightning-layout-item size="10">
+                                <template if:false={isNewSeller}>
+                                    <template if:true={showThirdPartyPicker}>
+                                        <lightning-record-picker
+                                            label="Third Party Seller"
+                                            placeholder="Search by Seller Code"
+                                            object-api-name="Thirdparty_Seller__c"
+                                            value={thirdPartySellerId}
+                                            onchange={handleThirdPartySellerChange}
+                                            matching-info={thirdPartyMatchingInfo}
+                                            required>
+                                        </lightning-record-picker>
+                                    </template>
+                                </template>
+
+                                <template if:true={isNewSeller}>
+                                    <lightning-input 
+                                        label="Third Party Seller Name"
+                                        value={newThirdPartySellerName}
+                                        onchange={handleNewSellerNameChange}
+                                        required>
+                                    </lightning-input>
+                                </template>
+                            </lightning-layout-item>
+
+                            <!-- Custom checkbox label -->
+                            <lightning-layout-item size="2" class="slds-p-left_small">
+                                <div class="slds-form-element">
+                                    <label class="slds-form-element__label" for="newSeller">New Seller?</label>
+                                    <div class="slds-form-element__control">
+                                        <lightning-input
+                                            type="checkbox"
+                                            name="newSeller"
+                                            checked={isNewSeller}
+                                            onchange={handleToggleNewSeller}
+                                            variant="standard">
+                                        </lightning-input>
+                                    </div>
+                                </div>
+                            </lightning-layout-item>
+
+                        </lightning-layout>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                        <template if:true={showProductPicker}>
+                            <lightning-record-picker
+                                label="Product"
+                                placeholder="Search by Product Code"
+                                object-api-name="Product2"
+                                value={productId}
+                                onchange={handleProductChange}
+                                matching-info={productMatchingInfo}
+                                required>
+                            </lightning-record-picker>
+                        </template>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                        <lightning-input 
+                            label="Country" 
+                            name="country" 
+                            value={country} 
+                            onchange={handleCountryChange} 
+                            required>
+                        </lightning-input>
+                    </lightning-layout-item>
+
+
+                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                        <lightning-input 
+                        label="City" 
+                        name="city" 
+                        value={city} 
+                        onchange={handleCityChange} 
+                        required></lightning-input>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                        <lightning-input 
+                        label="State" 
+                        name="state" 
+                        value={state} 
+                        onchange={handleStateChange} 
+                        required></lightning-input>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                        <lightning-combobox
+                            name="type"
+                            label="Type"
+                            value={type}
+                            placeholder="Select Type"
+                            options={typeOptions}
+                            onchange={handleTypeChange}
+                            required>
+                        </lightning-combobox>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                        <lightning-input
+                            type="number"
+                            label="Quantity"
+                            value={quantity}
+                            onchange={handleQuantityChange}
+                            max="99999"
+                            message-when-bad-input="Maximum 5 digits allowed"
+                            required>
+                        </lightning-input>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="12" class="slds-text-align_center">
+                        <lightning-button label="+ Add Depletion" variant="neutral" onclick={handleAddDepletion}></lightning-button>
+                    </lightning-layout-item>
+                    
+                    <!-- Divider -->
+                    <lightning-layout-item size="12">
+                        <div style="margin: 1.5rem 0; border-top: 1px solid #e0e0e0;"></div>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="12">
+                        <lightning-datatable
+                            key-field="id"
+                            data={depletionList}
+                            columns={columns}
+                            onrowaction={handleRowAction}
+                            hide-checkbox-column>
+                        </lightning-datatable>
+                    </lightning-layout-item>
+
+                    <lightning-layout-item size="12" class="slds-text-align_center slds-m-top_medium">
+                        <lightning-button label="Submit All" variant="brand" onclick={handleSubmit}></lightning-button>
+                    </lightning-layout-item>
+                </lightning-layout>
+            </template>
+        </div>
+    </lightning-card>
+
+    <!-- No Account Modal -->
+    <template if:true={isNoAccountModalOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium"><i>No Existing Account Found</i></h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-text-align_center">
+                        We couldn't find an account with the email and Tax ID provided. Please double-check or contact
+                        <a href="mailto:info@claseazul.com">info@claseazul.com</a>.
+                    </p>
+                </div>
+                <footer class="slds-modal__footer slds-text-align_center">
+                    <lightning-button variant="neutral" label="Close" onclick={closeModals}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- Success Modal -->
+    <template if:true={isSuccessModalOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium"><i>Thank you for your submission!</i></h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-text-align_center">
+                        We have received your request. You'll be contacted soon. For changes, contact
+                        <a href="mailto:info@claseazul.com">info@claseazul.com</a>.
+                    </p>
+                </div>
+                <footer class="slds-modal__footer slds-text-align_center">
+                    <lightning-button variant="neutral" label="Close" onclick={closeModals}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- Error Modal -->
+    <template if:true={isErrorModalOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium"><i>Something went wrong</i></h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-text-align_center">
+                        We're experiencing technical issues. Please try again later or contact
+                        <a href="mailto:info@claseazul.com">info@claseazul.com</a>.
+                    </p>
+                </div>
+                <footer class="slds-modal__footer slds-text-align_center">
+                    <lightning-button variant="neutral" label="Close" onclick={closeModals}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- Missing Fields Modal -->
+    <template if:true={isMissingFieldsModalOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium"><i>Missing Required Fields</i></h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-text-align_center">
+                        Please complete all required fields: Product, Third Party Seller, City, State, Cases, and Bottles.
+                    </p>
+                </div>
+                <footer class="slds-modal__footer slds-text-align_center">
+                    <lightning-button variant="neutral" label="Close" onclick={closeModals}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+     <!-- CSV Error Modal -->
+    <template if:true={isCSVErrorModalOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-modal__title">CSV Import Errors</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <template for:each={uploadErrors} for:item="err">
+                        <p key={err} class="slds-text-color_error">{err}</p>
+                    </template>
+                </div>
+                <footer class="slds-modal__footer slds-text-align_center">
+                    <lightning-button label="Close" onclick={closeCSVErrorModal}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+    
+     <!-- Edit Row Modal -->
+    <template if:true={isEditModalOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium"><i>Edit Depletion</i></h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+
+                    <lightning-record-picker
+                        label="Product"
+                        placeholder="Search by Product Code"
+                        object-api-name="Product2"
+                        value={editDepletion.productId}
+                        matching-info={productMatchingInfo}
+                        onrecordselection={handleEditProductChange}>
+                    </lightning-record-picker>
+
+                    <lightning-record-picker
+                        label="Third Party Seller"
+                        placeholder="Search by Seller Code"
+                        object-api-name="Thirdparty_Seller__c"
+                        value={editDepletion.thirdPartySellerId}
+                        matching-info={thirdPartyMatchingInfo}
+                        onrecordselection={handleEditThirdPartyChange}>
+                    </lightning-record-picker>
+
+                    <lightning-input
+                        type="text"
+                        label="City"
+                        value={editDepletion.city}
+                        onchange={handleEditCityChange}>
+                    </lightning-input>
+
+                    <lightning-input
+                        type="text"
+                        label="State"
+                        value={editDepletion.state}
+                        onchange={handleEditStateChange}>
+                    </lightning-input>
+
+                    <lightning-input
+                        type="number"
+                        label="Quantity"
+                        value={editDepletion.quantity}
+                        onchange={handleEditQuantityChange}
+                        max="99999">
+                    </lightning-input>
+
+                    <lightning-combobox
+                        label="Type"
+                        value={editDepletion.type}
+                        options={typeOptions}
+                        onchange={handleEditTypeChange}>
+                    </lightning-combobox>
+
+                </div>
+                <footer class="slds-modal__footer slds-text-align_center">
+                    <div class="button-group">
+                        <lightning-button 
+                            class="slds-m-right_small"
+                            label="Cancel"
+                            onclick={closeEditModal}>
+                        </lightning-button>
+
+                        <lightning-button 
+                            variant="brand"
+                            label="Save"
+                            onclick={handleSaveEdit}>
+                        </lightning-button>
+                    </div>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+</template>
