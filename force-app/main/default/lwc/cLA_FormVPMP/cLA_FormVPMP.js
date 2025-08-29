@@ -515,9 +515,16 @@ export default class CampaignOrderComponent extends LightningElement {
 
     isFormValid() {
         const allValid = [...this.template.querySelectorAll('lightning-input, lightning-combobox')]
-            .reduce((validSoFar, inputCmp) => validSoFar && inputCmp.checkValidity(), true);
-        const hasSelectedProducts = this.products.some(prod => parseInt(prod.quantity, 10) > 0);
-        return hasSelectedProducts && allValid;
+            .reduce((ok, cmp) => ok && cmp.checkValidity(), true);
+            
+        const hasSelectedProducts =
+            Array.isArray(this.products) && this.products.some(p => parseInt(p.quantity, 10) > 0);
+
+        const hasSelectedWishlist =
+            (Array.isArray(this.wishlists) && this.wishlists.some(w => w.selected)) ||
+            !!this.wishlistedVintagePink2022;
+
+        return (hasSelectedProducts || hasSelectedWishlist) && allValid;
     }
 
     showToast(title, message, variant) {
