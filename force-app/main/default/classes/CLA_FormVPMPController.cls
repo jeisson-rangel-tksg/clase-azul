@@ -173,6 +173,13 @@ public without sharing class CLA_FormVPMPController {
         ];
         if (pa == null) return true;
         if (pa.PersonContactId == null) return true;
+
+        Integer cmCCount = [
+            SELECT COUNT()
+            FROM CampaignMember
+            WHERE CampaignId IN :scopeCampaignIds
+        ];
+        if (cmCCount == 0) return true;
        
         Integer cmCount = [
             SELECT COUNT()
@@ -198,7 +205,7 @@ public without sharing class CLA_FormVPMPController {
             SELECT COUNT()
             FROM Campaign
             WHERE Id = :campaignId
-            AND (Type = 'Event' OR Type = 'Launch')
+            AND (Type = 'Event')
             LIMIT 1
         ] > 0;
     }

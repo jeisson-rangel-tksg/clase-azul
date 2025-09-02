@@ -122,8 +122,8 @@ private class CLA_FormVPMPControllerMoreTests {
         pa = [SELECT Id, PersonContactId FROM Account WHERE Id = :pa.Id LIMIT 1];
         System.assertNotEquals(null, pa.PersonContactId, 'PersonContactId should exist');
 
-        // 3) No campaign member in parent or child → returns false
-        System.assertEquals(false, CLA_FormVPMPController.canUserCreateOrder(parentC.Id, emBase));
+        // 3) No campaign member in parent or child → returns true
+        System.assertEquals(true, CLA_FormVPMPController.canUserCreateOrder(parentC.Id, emBase));
 
         // 4) With CM in scope (parent or child) and no order → true
         insert new CampaignMember(CampaignId = parentC.Id, ContactId = pa.PersonContactId, Status = 'Sent');
@@ -141,7 +141,7 @@ private class CLA_FormVPMPControllerMoreTests {
         System.assertEquals(false, CLA_FormVPMPController.canUserCreateOrder(parentC.Id, emBase));
 
         // Sanity: child scope also counts (collectParentAndImmediateChildren)
-        System.assertEquals(false, CLA_FormVPMPController.canUserCreateOrder(childC.Id, emBase));
+        System.assertEquals(true, CLA_FormVPMPController.canUserCreateOrder(childC.Id, emBase));
     }
 
     @IsTest
