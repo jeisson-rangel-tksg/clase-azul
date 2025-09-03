@@ -131,6 +131,9 @@ public without sharing class CLA_FormUtils {
                 RecordTypeId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName()
                     .get(CLA_FormConstants.RECORD_TYPE_PERSON_ACCOUNT).getRecordTypeId()
             );
+            if (input.ownerId != null) {
+                account.OwnerId = input.ownerId;
+            }
             insert account;
         } else {
             account = existing[0];
@@ -284,7 +287,7 @@ public without sharing class CLA_FormUtils {
             personInput.mailingStreet = input.containsKey('street') ? (String) input.get('street') : null;
             personInput.mailingCity = input.containsKey('city') ? (String) input.get('city') : null;
             personInput.mailingPostalCode = input.containsKey('zip') ? (String) input.get('zip') : null;
-
+            personInput.ownerId = getAccountOwnerNonMember(campaignId);
 
             // Obtain campaign
             Campaign campaign = new Campaign();
@@ -350,6 +353,14 @@ public without sharing class CLA_FormUtils {
         }
     }
     
+    private static String getAccountOwnerNonMember(Id campaignId){
+        return [
+        SELECT Assign_New_Members_To__c 
+        FROM Campaign 
+        WHERE Id = :campaignId AND Allow_Orders_From_Non_Members__c = true LIMIT 1
+        ]?.Assign_New_Members_To__c;
+    }
+
     /**
      * Creates an Order and associated OrderItems for a Person Account based on input data.
      * 
@@ -388,7 +399,7 @@ public without sharing class CLA_FormUtils {
         @AuraEnabled public String mailingStreet;
         @AuraEnabled public String mailingCity;
         @AuraEnabled public String mailingPostalCode;
-
+        @AuraEnabled public String ownerId;
     }
 
     /**

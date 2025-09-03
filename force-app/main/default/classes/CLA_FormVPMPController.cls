@@ -159,48 +159,69 @@ public without sharing class CLA_FormVPMPController {
 
         if (String.isBlank(campaignId) || String.isBlank(email)) return true;
 
-        if (isEventOrLaunch(campaignId)) {
-            return true;
-        }
-
-        Set<Id> scopeCampaignIds = collectParentAndImmediateChildren(campaignId);
-
-        Account pa = [
+        List<Account> pas = [
             SELECT Id, PersonContactId
             FROM Account
             WHERE IsPersonAccount = true AND PersonEmail = :email
             LIMIT 1
         ];
-        if (pa == null) return true;
+        if (pas.isEmpty()) return true;
+        Account pa = pas[0];
         if (pa.PersonContactId == null) return true;
-       
-        Integer cmCount = [
-            SELECT COUNT()
-            FROM CampaignMember
-            WHERE CampaignId IN :scopeCampaignIds
-            AND ContactId = :pa.PersonContactId
-        ];
-        if (cmCount == 0) return false;
 
-        Boolean hasOrder = [
-            SELECT COUNT()
-            FROM Order
-            WHERE AccountId = :pa.Id
-            AND Campaign__c IN :scopeCampaignIds
-            LIMIT 1
-        ] > 0;
-
-        return !hasOrder;
+        if (isEvent(campaignId)){
+            return true;
+        }
+        if (userHasNonCancelledOrder(campaignId, pa.Id)){
+            return false;
+        }
+        if (allowNonMembers(campaignId)){
+            return true;
+        }
+        Boolean campaignHasCMembers = campaignHasCampaignMembers(campaignId);
+        Boolean isCampaignMember;
+        if (campaignHasCMembers) {
+            isCampaignMember = isCampaignMember(campaignId, pa.PersonContactId);
+        }
+        return campaignHasCMembers && isCampaignMember;
     }
 
-    private static Boolean isEventOrLaunch(Id campaignId) {
+    @AuraEnabled(cacheable=true)
+    public static Boolean userHaveNonCancelledOrderValidation(Id campaignId, String email) {
+        List<Account> pas = [SELECT Id, PersonContactId FROM Account WHERE PersonEmail = :email];
+        if (pas.isEmpty()){
+             return false;
+        }
+        Account pa = pas[0];
+        if (pa.PersonContactId == null){
+             return false;
+        }
+        return userHasNonCancelledOrder(campaignId, pa.Id);
+    }
+
+    private static Boolean userHasNonCancelledOrder(Id campaignId, Id accountId){
+        Set<Id> campaigns = collectParentAndImmediateChildren(campaignId);
         return [
-            SELECT COUNT()
-            FROM Campaign
-            WHERE Id = :campaignId
-            AND (Type = 'Event' OR Type = 'Launch')
-            LIMIT 1
-        ] > 0;
+        SELECT COUNT() FROM Order 
+        WHERE AccountId = :accountId AND Campaign__c IN :campaigns AND Status != :CLA_FormConstants.CANCELLED_STATUS_ORDER 
+        LIMIT 1] > 0;
+    }
+
+    private static Boolean campaignHasCampaignMembers(Id campaignId){
+        return [SELECT COUNT() FROM CampaignMember WHERE CampaignId = :campaignId LIMIT 1] > 0;
+    }
+
+    private static Boolean isCampaignMember(Id campaignId, Id contactId) {
+        Set<Id> campaigns = collectParentAndImmediateChildren(campaignId);
+        return [SELECT COUNT() FROM CampaignMember WHERE CampaignId IN :campaigns AND ContactId = :contactId LIMIT 1] > 0;
+    }
+
+    private static Boolean allowNonMembers(Id campaignId){
+        return [SELECT COUNT() FROM Campaign WHERE Id = :campaignId AND Allow_Orders_From_Non_Members__c = true LIMIT 1] > 0;
+    }
+
+    private static Boolean isEvent(Id campaignId) {
+        return [SELECT COUNT() FROM Campaign WHERE Id = :campaignId AND (Type = 'Event') LIMIT 1] > 0;
     }
 
     /** Get Campaign and Child Campaigns */

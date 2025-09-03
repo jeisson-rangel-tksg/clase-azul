@@ -7,6 +7,7 @@ import getCampaignProducts from '@salesforce/apex/CLA_FormVPMPController.getCamp
 //import getPickupLocationsAndProductsByCampaign from '@salesforce/apex/CLA_FormVPMPController.getPickupLocationsAndProductsByCampaign';
 import getPersonAccountByEmail from '@salesforce/apex/CLA_FormVPMPController.getPersonAccountByEmail';
 import canUserCreateOrder from '@salesforce/apex/CLA_FormVPMPController.canUserCreateOrder';
+import userHaveNonCancelledOrderValidation from '@salesforce/apex/CLA_FormVPMPController.userHaveNonCancelledOrderValidation';
 import getCampaignWishlists from '@salesforce/apex/CLA_FormVPMPController.getCampaignWishlists';
 import createOrders from '@salesforce/apex/CLA_FormVPMPController.createOrders';
 import isCampaignActive from '@salesforce/apex/CLA_FormVPMPController.isCampaignActive';
@@ -47,6 +48,9 @@ export default class CampaignOrderComponent extends LightningElement {
 
     @track canCreateOrderAllowed = true;
     @track isOrderNotAllowedModalOpen = false;
+
+    @track alreadyHasOrder = false;
+    @track isAlreadyHasOrderModalOpen = false;
 
     // Picklists
     @track pickupLocationOptions = [];
@@ -152,6 +156,7 @@ export default class CampaignOrderComponent extends LightningElement {
                             this.isInvalidCampaignModalOpen = true;
                             this.isLoading = false;
                         } else {
+                            this.refreshAlreadyHasOrder();
                             this.refreshCanCreateOrder();
                             this.checkAccount();
                         }
@@ -341,6 +346,7 @@ export default class CampaignOrderComponent extends LightningElement {
         }
 
         this.email = newValue;
+        this.refreshAlreadyHasOrder()
         this.refreshCanCreateOrder();
         this.fetchAccountByEmail();
     }
@@ -385,14 +391,16 @@ export default class CampaignOrderComponent extends LightningElement {
             this.showToast('Error', 'Missing customer email.', 'error');
             return;
         }
-        console.log('1')
+        this.refreshAlreadyHasOrder();
+        if (this.alreadyHasOrder === true) {
+            this.isAlreadyHasOrderModalOpen = true;
+            return;
+        }
         this.refreshCanCreateOrder();
         if (this.canCreateOrderAllowed === false) {
-            console.log('2')
             this.isOrderNotAllowedModalOpen = true;
             return;
         }
-        console.log('3')
         const formattedProducts = this.products
             .filter(prod => parseInt(prod.quantity, 10) > 0)
             .map(prod => ({
@@ -486,6 +494,25 @@ export default class CampaignOrderComponent extends LightningElement {
 
     closeOrderNotAllowedModal() {
         this.isOrderNotAllowedModalOpen = false;
+    }
+
+    refreshAlreadyHasOrder() {
+        if (!this.campaignId || !this.email) {
+            this.alreadyHasOrder = false;
+        }
+        return userHaveNonCancelledOrderValidation({ campaignId: this.campaignId, email: this.email })
+            .then(res => {
+                console.log('TIENE ORDENES?: '+res);
+                this.alreadyHasOrder = res;
+            })
+            .catch(err => {
+                console.error('userHaveNonCancelledOrderValidation failed', err);
+                this.alreadyHasOrder = false;
+            });
+    }
+
+    closeAlreadyHasOrderModal() {
+        this.isAlreadyHasOrderModalOpen = false;
     }
 
     handleWishlistItemChange(event) {

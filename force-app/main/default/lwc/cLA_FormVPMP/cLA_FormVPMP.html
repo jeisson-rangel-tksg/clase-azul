@@ -195,7 +195,7 @@
                             <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
                                 <div class="custom-label">
                                     <span class="required">*</span>
-                                    <span class="main-label">Desired Pick-Up Location </span>
+                                    <span class="main-label">I would like to purchase through… </span>
                                 </div>
                                 <lightning-combobox
                                     variant="label-hidden"
@@ -322,7 +322,7 @@
                             <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
                                 <div class="custom-label">
                                     <span class="required">*</span>
-                                    <span class="main-label">Desired Pick-Up Location </span>
+                                    <span class="main-label">I would like to purchase through… </span>
                                 </div>
                                 <lightning-combobox
                                     variant="label-hidden"
@@ -527,7 +527,7 @@
                         </lightning-layout>
                     </template>
                     <div class="slds-box slds-m-around_medium">
-                        <p>Please select your desired decanter. You can choose more than one option.</p>
+                        <p>Please select your desired decanter.</p>
                         <template for:each={products} for:item="product" for:index="index">
                             <div key={product.Id}>
                                 <lightning-layout multiple-rows="true" class="slds-grid_vertical-align-center slds-p-horizontal_small">
@@ -585,7 +585,7 @@
                         </div>
                         <div class="custom-label-stacked">
                             <div class="main-label">
-                                Discover the art of our luxury spirits and Mexican hospitality. Be the first to know about our limited editions, private events, and new Clase Azul destinations, including La Hacienda.
+                                Discover the art of our luxury spirits and Mexican hospitality. Be the first to know about our limited editions, private events, and new Clase Azul destinations.
                             </div>
                         </div>
                     </div>
@@ -666,10 +666,10 @@
         <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
             <div class="slds-modal__container">
                 <header class="slds-modal__header">
-                    <h2 class="slds-text-heading_medium"><i>Order already registered</i></h2>
+                    <h2 class="slds-text-heading_medium"><i>Email not recognized for this campaign</i></h2>
                 </header>
                 <div class="slds-modal__content slds-p-around_medium">
-                    <p class="slds-text-align_center">We found an existing order linked to your email for this campaign (or a related sub-campaign). You can’t submit a new allocation with this email.</p>
+                    <p class="slds-text-align_center">This campaign doesn’t allow orders from non-members. If you’re expecting access, ensure your email is registered as a member.</p>
                 </div>
                 <footer class="slds-modal__footer slds-text-align_center">
                     <lightning-button variant="brand" label="OK" onclick={closeOrderNotAllowedModal}></lightning-button>
@@ -678,5 +678,27 @@
         </section>
         <div class="slds-backdrop slds-backdrop_open"></div>
     </template>
+
+    <!-- Already-has-order modal -->
+    <template if:true={isAlreadyHasOrderModalOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium"><i>Order already registered</i></h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-text-align_center">
+                        We found an existing order linked to your email for this campaign (or a related sub-campaign).
+                        You can’t submit a new allocation with this email.
+                    </p>
+                </div>
+                <footer class="slds-modal__footer slds-text-align_center">
+                    <lightning-button variant="brand" label="OK" onclick={closeAlreadyHasOrderModal}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
 
 </template>
