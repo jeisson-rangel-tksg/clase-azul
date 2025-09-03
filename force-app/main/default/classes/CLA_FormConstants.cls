@@ -18,6 +18,8 @@ public class CLA_FormConstants {
     public static final String DEFAULT_ORDER_STATUS = 'Allocation';
     public static final String DEFAULT_ORDER_TYPE  = 'Allocation';
 
+    public static final String CANCELLED_STATUS_ORDER = 'Cancelled - Post Payment';
+
     public static final String MAIN_INTEREST_PINK_2022 = 'LE';
     public static final String INTEREST_PINK_2022 = 'Pink 2022';
 

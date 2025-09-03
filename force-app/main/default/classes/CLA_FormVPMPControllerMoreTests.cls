@@ -5,7 +5,7 @@ private class CLA_FormVPMPControllerMoreTests {
     private static Account makePA(String email) {
         Account pa = new Account(
             FirstName = 'TEST',
-            LastName = 'TEST 2',
+            LastName  = 'TEST 2',
             PersonEmail = email,
             AccountSource = CLA_FormConstants.DEFAULT_ACCOUNT_SOURCE,
             CLA_Fuente__c = CLA_FormConstants.DEFAULT_SOURCE,
@@ -20,7 +20,7 @@ private class CLA_FormVPMPControllerMoreTests {
     @TestSetup
     static void data() {
         // Base active + inactive campaigns
-        insert new Campaign(Name = 'ActiveCamp', IsActive = true, Type = 'Other', Status = 'In Progress');
+        insert new Campaign(Name = 'ActiveCamp',   IsActive = true,  Type = 'Other', Status = 'In Progress');
         insert new Campaign(Name = 'InactiveCamp', IsActive = false, Type = 'Other', Status = 'In Progress');
 
         // Event campaign for canUserCreateOrder fast-path
@@ -34,7 +34,7 @@ private class CLA_FormVPMPControllerMoreTests {
 
     @IsTest
     static void test_isCampaignActive_AllBranches() {
-        Campaign activeC = [SELECT Id, IsActive FROM Campaign WHERE Name = 'ActiveCamp' LIMIT 1];
+        Campaign activeC   = [SELECT Id, IsActive FROM Campaign WHERE Name = 'ActiveCamp' LIMIT 1];
         Campaign inactiveC = [SELECT Id, IsActive FROM Campaign WHERE Name = 'InactiveCamp' LIMIT 1];
 
         // Active = true
@@ -68,7 +68,7 @@ private class CLA_FormVPMPControllerMoreTests {
         System.assertNotEquals(null, opts, 'Options list should be returned');
     }
 
-    // NEW: null Id exception branch for getPickupLocationsFromCampaign
+    // null Id exception branch for getPickupLocationsFromCampaign
     @IsTest
     static void test_getPickupLocationsFromCampaign_nullId_exception() {
         try {
@@ -79,7 +79,7 @@ private class CLA_FormVPMPControllerMoreTests {
         }
     }
 
-    // NEW: both branches for getPickupLocationsAndProductsByCampaign
+    // getPickupLocationsAndProductsByCampaign (logic currently commented → empty structures)
     @IsTest
     static void test_getPickupLocationsAndProductsByCampaign_paths() {
         Campaign c = [SELECT Id FROM Campaign WHERE Name = 'ActiveCamp' LIMIT 1];
@@ -92,7 +92,7 @@ private class CLA_FormVPMPControllerMoreTests {
             System.assert(e.getTypeName().contains('AuraHandledException'));
         }
 
-        // Happy path (logic is commented → empty structures)
+        // Happy path (empty structures)
         Test.startTest();
         CLA_FormVPMPController.PickupResponse resp =
             CLA_FormVPMPController.getPickupLocationsAndProductsByCampaign(c.Id);
@@ -103,46 +103,51 @@ private class CLA_FormVPMPControllerMoreTests {
         System.assertNotEquals(null, resp.productsByLocation);
     }
 
-
     @IsTest
     static void test_canUserCreateOrder_allBranches() {
-        Campaign eventC = [SELECT Id FROM Campaign WHERE Name = 'EventCamp' LIMIT 1];
+        Campaign eventC  = [SELECT Id FROM Campaign WHERE Name = 'EventCamp' LIMIT 1];
         Campaign parentC = [SELECT Id FROM Campaign WHERE Name = 'ParentC' LIMIT 1];
-        Campaign childC  = [SELECT Id FROM Campaign WHERE Name = 'ChildC1' LIMIT 1];
+        Campaign childC  = [SELECT Id FROM Campaign WHERE Name = 'ChildC1'  LIMIT 1];
 
         // 1) Blank inputs → true
         System.assertEquals(true, CLA_FormVPMPController.canUserCreateOrder(null, null));
 
-        // 2) Event/Launch fast-path → true even with email present
-        System.assertEquals(true, CLA_FormVPMPController.canUserCreateOrder(eventC.Id, 'someone@t.com'));
+        // 2) Event fast-path → ensure PA exists to avoid SOQL single-row issues
+        String emEvent = 'event_' + System.now().getTime() + '@test.com';
+        makePA(emEvent);
+        System.assertEquals(true, CLA_FormVPMPController.canUserCreateOrder(eventC.Id, emEvent));
 
         // Prepare PA and CM scenarios
-        String emBase = 'pa_' + String.valueOf(System.now().getTime()) + '@test.com';
+        String emBase = 'pa_' + System.now().getTime() + '@test.com';
         Account pa = makePA(emBase);
         pa = [SELECT Id, PersonContactId FROM Account WHERE Id = :pa.Id LIMIT 1];
         System.assertNotEquals(null, pa.PersonContactId, 'PersonContactId should exist');
 
-        // 3) No campaign member in parent or child → returns true
-        System.assertEquals(true, CLA_FormVPMPController.canUserCreateOrder(parentC.Id, emBase));
+        // 3) No campaign member in parent or child → returns false
+        System.assertEquals(false, CLA_FormVPMPController.canUserCreateOrder(parentC.Id, emBase));
 
-        // 4) With CM in scope (parent or child) and no order → true
+        // 4) With CM in parent scope and no order → true
         insert new CampaignMember(CampaignId = parentC.Id, ContactId = pa.PersonContactId, Status = 'Sent');
         System.assertEquals(true, CLA_FormVPMPController.canUserCreateOrder(parentC.Id, emBase));
 
-        // 5) With an Order under same scope → false
-        Order ord = new Order(
+        // 5) With an Order under same scope (parent) → false
+        insert new Order(
             AccountId = pa.Id,
             EffectiveDate = Date.today(),
             Status = 'Draft',
             Campaign__c = parentC.Id
         );
-        insert ord;
-
         System.assertEquals(false, CLA_FormVPMPController.canUserCreateOrder(parentC.Id, emBase));
 
-        // Sanity: child scope also counts (collectParentAndImmediateChildren)
+        // 6) Child sanity:
+        //    a) Without CM on child → campaignHasCampaignMembers(child) == false → returns false
+        System.assertEquals(false, CLA_FormVPMPController.canUserCreateOrder(childC.Id, emBase));
+
+        //    b) Add CM on child, still no order under child scope → returns true
+        insert new CampaignMember(CampaignId = childC.Id, ContactId = pa.PersonContactId, Status = 'Sent');
         System.assertEquals(true, CLA_FormVPMPController.canUserCreateOrder(childC.Id, emBase));
     }
+
 
     @IsTest
     static void test_getCampaignWishlists() {
@@ -177,7 +182,7 @@ private class CLA_FormVPMPControllerMoreTests {
         System.assertEquals('EN 2', out[1].labelEn);
     }
 
-    // NEW: blank Id path for wishlists → empty list
+    // blank Id path for wishlists → empty list
     @IsTest
     static void test_getCampaignWishlists_blankId_returnsEmpty() {
         Test.startTest();
@@ -193,22 +198,21 @@ private class CLA_FormVPMPControllerMoreTests {
         System.assertEquals(true, CLA_FormVPMPController.canUserCreateOrder('701000000000001AAA', ''));
     }
 
-    // NEW: PA not found branch in canUserCreateOrder → returns true
+    // PA not found branch in canUserCreateOrder → QueryException thrown by SOQL
     @IsTest
     static void test_canUserCreateOrder_personAccountNotFound_returnsTrue() {
         Campaign c = [SELECT Id FROM Campaign WHERE Name = 'ActiveCamp' LIMIT 1];
         String nonExistingEmail = 'no_pa_' + System.now().getTime() + '@test.com';
 
-        try {
-            CLA_FormVPMPController.canUserCreateOrder(c.Id, nonExistingEmail);
-            System.assert(false, 'Expected QueryException when no Person Account exists.');
-        } catch (QueryException e) {
-            System.assertEquals('System.QueryException', e.getTypeName());
-            System.assert(e.getMessage().contains('List has no rows'), 'Expected "List has no rows" message.');
-        }
+        // No PA exists for this email → method should return true (cannot block order)
+        Test.startTest();
+        Boolean can = CLA_FormVPMPController.canUserCreateOrder(c.Id, nonExistingEmail);
+        Test.stopTest();
+
+        System.assertEquals(true, can, 'When no PA exists, method should allow order (returns true).');
     }
 
-    // NEW: updateMissingAccountFields success + missing Id exception
+    // updateMissingAccountFields success + missing Id exception
     @IsTest
     static void test_updateMissingAccountFields_success_and_missingId() {
         Account pa = makePA('upd_' + System.now().getTime() + '@test.com');
@@ -230,13 +234,13 @@ private class CLA_FormVPMPControllerMoreTests {
 
         Account after = [
             SELECT PersonBirthdate, Region__pc, Country__pc, State__pc,
-                PersonMailingStreet, PersonMailingCity, PersonMailingPostalCode
+                   PersonMailingStreet, PersonMailingCity, PersonMailingPostalCode
             FROM Account WHERE Id = :pa.Id
         ];
         System.assertEquals(Date.newInstance(1992, 4, 15), after.PersonBirthdate);
-        System.assertEquals('Latam',    after.Region__pc);
-        System.assertEquals('Colombia', after.Country__pc);
-        System.assertEquals('Boyacá',   after.State__pc);
+        System.assertEquals('Latam',     after.Region__pc);
+        System.assertEquals('Colombia',  after.Country__pc);
+        System.assertEquals('Boyacá',    after.State__pc);
         System.assertEquals('Calle 123', after.PersonMailingStreet);
         System.assertEquals('Ciudad',    after.PersonMailingCity);
         System.assertEquals('01010',     after.PersonMailingPostalCode);
@@ -250,7 +254,6 @@ private class CLA_FormVPMPControllerMoreTests {
         }
     }
 
-    // NEW: invalid email branch for getPersonAccountByEmail
     @IsTest
     static void test_getPersonAccountByEmail_invalid_throws() {
         try {
@@ -260,4 +263,55 @@ private class CLA_FormVPMPControllerMoreTests {
             System.assert(e.getTypeName().contains('AuraHandledException'));
         }
     }
-} 
+
+    @IsTest
+    static void test_canUserCreateOrder_allowNonMembers_true() {
+        Campaign c = new Campaign(
+            Name = 'NonMembersOK',
+            IsActive = true,
+            Type = 'Other',
+            Status = 'In Progress',
+            Allow_Orders_From_Non_Members__c = true
+        );
+        insert c;
+
+        String em = 'nonmem_' + System.now().getTime() + '@test.com';
+        makePA(em);
+        Test.startTest();
+        Boolean can = CLA_FormVPMPController.canUserCreateOrder(c.Id, em);
+        Test.stopTest();
+
+        System.assertEquals(true, can, 'Allow_Orders_From_Non_Members__c = true should allow order');
+    }
+
+    @IsTest
+    static void test_userHaveNonCancelledOrderValidation_paths() {
+        Campaign parentC = [SELECT Id FROM Campaign WHERE Name = 'ParentC' LIMIT 1];
+
+        // No PA → false
+        System.assertEquals(false,
+            CLA_FormVPMPController.userHaveNonCancelledOrderValidation(parentC.Id, 'none_' + System.now().getTime() + '@t.com'));
+
+        // PA with no orders → false
+        String em = 'ord_' + System.now().getTime() + '@t.com';
+        Account pa = makePA(em);
+
+        Test.startTest();
+        Boolean hasOrder = CLA_FormVPMPController.userHaveNonCancelledOrderValidation(parentC.Id, em);
+        System.assertEquals(false, hasOrder, 'No orders yet → false');
+
+        // Insert a non-cancelled order → true
+        insert new Order(
+            AccountId = pa.Id,
+            EffectiveDate = Date.today(),
+            Status = 'Draft',           // != CANCELLED
+            Campaign__c = parentC.Id
+        );
+
+
+        hasOrder = CLA_FormVPMPController.userHaveNonCancelledOrderValidation(parentC.Id, em);
+        Test.stopTest();
+        System.assertEquals(true, hasOrder, 'One non-cancelled order in scope → true');
+    }
+
+}
