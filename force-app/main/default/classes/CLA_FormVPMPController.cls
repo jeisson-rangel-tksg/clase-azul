@@ -203,7 +203,8 @@ public without sharing class CLA_FormVPMPController {
         Set<Id> campaigns = collectParentAndImmediateChildren(campaignId);
         return [
         SELECT COUNT() FROM Order 
-        WHERE AccountId = :accountId AND Campaign__c IN :campaigns AND Status != :CLA_FormConstants.CANCELLED_STATUS_ORDER 
+        WHERE AccountId = :accountId AND Campaign__c IN :campaigns 
+        AND Status NOT IN :CLA_FormConstants.CANCELLED_STATUS_ORDER
         LIMIT 1] > 0;
     }
 
