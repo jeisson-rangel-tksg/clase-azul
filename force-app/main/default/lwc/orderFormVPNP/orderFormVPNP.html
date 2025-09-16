@@ -207,6 +207,11 @@
                                     placeholder="Select a location"
                                     required>
                                 </lightning-combobox>
+                                <template  if:true={isLiquorStoreNearMe}>
+                                    <div class="main-label" style="margin-top: 10px;">
+                                        <span class="sub-label">Your Client Advisor will facilitate the shipping of your order through a retailer near you.</span>
+                                    </div>
+                                </template>
                             </lightning-layout-item>
 
                             <template if:true={isLiquorStoreNearMe}>
@@ -292,6 +297,11 @@
                                     placeholder="Select a location"
                                     required>
                                 </lightning-combobox>
+                                <template  if:true={isLiquorStoreNearMe}>
+                                    <div class="main-label" style="margin-top: 10px;">
+                                        <span class="sub-label">Your Client Advisor will facilitate the shipping of your order through a retailer near you.</span>
+                                    </div>
+                                </template>
                             </lightning-layout-item>
 
                             <template if:true={isLiquorStoreNearMe}>
