@@ -29,6 +29,27 @@ public without sharing class CLA_FormVPMPController {
         ];
     }
 
+    @AuraEnabled(cacheable=true)
+    public static Map<String, Object> getCampaignEventConfigMap(Id campaignId){
+        Map<String, Object> cfg = new Map<String, Object>{
+            'isEvent' => false,
+            'allowPlusOne' => false,
+            'campaignName' => null
+        };
+        if (String.isBlank(campaignId)) return cfg;
+
+        Campaign c = [
+            SELECT Name, Type, Allow_Plus_One__c
+            FROM Campaign
+            WHERE Id = :campaignId
+            LIMIT 1
+        ];
+        cfg.put('isEvent', c.Type == 'Event');
+        cfg.put('allowPlusOne', c.Allow_Plus_One__c);
+        cfg.put('campaignName', c.Name);
+        return cfg;
+    }
+
     /**
      * Retrieves values from the Location__c field of campaign.
      *
