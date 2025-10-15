@@ -11,6 +11,14 @@ dmlOpts.duplicateRuleHeader.allowSave = true;            // allow saving even if
 //dmlOpts.duplicateRuleHeader.includeRecordDetails = true; // optional: include extra details in results
 dmlOpts.duplicateRuleHeader.runAsCurrentUser = true;     // run duplicate rule checks as current user (true/false as needed)
 
+Account pa = new Account(
+            FirstName = 'Jeisson', LastName = 'Rangel', PersonEmail = 'jeisson.rangel@theksquaregroup.com',
+            AccountSource = CLA_FormConstants.DEFAULT_ACCOUNT_SOURCE,
+            CLA_Fuente__c = CLA_FormConstants.DEFAULT_SOURCE,
+            CLA_SubCategory__c = CLA_FormConstants.DEFAULT_SUBCATEGORY,
+            RecordTypeId = Schema.SObjectType.Account.getRecordTypeInfosByDeveloperName()
+                .get(CLA_FormConstants.RECORD_TYPE_PERSON_ACCOUNT).getRecordTypeId());
+
 Account pa1 = new Account(
             FirstName = 'Jeisson', LastName = 'Rangel', PersonEmail = 'jeisson.rangel1@theksquaregroup.com',
             AccountSource = CLA_FormConstants.DEFAULT_ACCOUNT_SOURCE,

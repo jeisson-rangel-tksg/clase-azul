@@ -91,6 +91,30 @@ public without sharing class CLA_FormUtils {
         return result;
     }
 
+    private static void createPlusOneEventRecord(Campaign c, Account pa, String plusOneName, String attendingWithPlusOne, String attending){
+
+        CLA_Evento__c ev = new CLA_Evento__c(
+            CLA_AccountId__c = pa.Id,
+            CLA_Nombre_evento__c = c.Name,
+            CLA_PlusOneName__c = plusOneName
+        );
+        if(attendingWithPlusOne == 'Yes'){
+            ev.CLA_Acompanante__c = CLA_FormConstants.SI_ES;
+        } else {
+            ev.CLA_Acompanante__c = CLA_FormConstants.NO_EN;
+        }
+
+        if(attending == 'Yes'){
+            ev.CLA_Attendance__c = CLA_FormConstants.YES_EN;
+        } else {
+            ev.CLA_Attendance__c = CLA_FormConstants.NO_EN;
+        }
+
+        System.debug('EV '+ev);
+
+        insert ev;
+    }
+
     /**
      * Retrieves an existing Person Account by email or creates a new one.
      * 
@@ -168,7 +192,7 @@ public without sharing class CLA_FormUtils {
             throw new AuraHandledException(CLA_FormConstants.ERR_ORDER_CREATE);
         }
 
-        System.debug('RETAILER: '+input.get('retailerId'));
+        Boolean disableEmailNotification = clientHaveCanceledOrder(account.Id, (String) input.get('campaignId'));
 
         Order order = new Order(
             AccountId = account.Id,
@@ -180,9 +204,10 @@ public without sharing class CLA_FormUtils {
             Pricebook2Id = getStandardPricebookId(),
             Campaign__c = (String) input.get('campaignId'),
             CLA_Location__c = (String) input.get('pickupLocation'),
+            disableEmailNotification__c = disableEmailNotification,
             Distributor_Retailer__c = (String) input.get('retailerId')
         );
-        System.debug('ORDER RET: '+order.Distributor_Retailer__c);
+        //System.debug('ORDER RET: '+order.Distributor_Retailer__c);
         insert order;
         return order;
     }
@@ -243,6 +268,13 @@ public without sharing class CLA_FormUtils {
             String retailerNameText = input.containsKey('retailerNameText') ? (String) input.get('retailerNameText') : null;
             Id retailerId;
 
+            // NEW: attendance & plus one inputs from LWC
+            String attending = (String) input.get('attending');
+            String attendingWithPlusOne = (String) input.get('attendingWithPlusOne');
+            String plusOneFullName = (String) input.get('plusOneFullName');
+
+            System.debug(attending + ', ' + attendingWithPlusOne );
+
             Boolean hasProducts = (productEntries != null && !productEntries.isEmpty());
             Boolean hasWishlist = (wishlistSelections != null && !wishlistSelections.isEmpty());
     
@@ -292,7 +324,7 @@ public without sharing class CLA_FormUtils {
             // Obtain campaign
             Campaign campaign = new Campaign();
             if (!String.isBlank(campaignId)) {
-                campaign = [SELECT Id, Name, Type FROM Campaign WHERE Id = :campaignId LIMIT 1];
+                campaign = [SELECT Id, Name, Type, Allow_Plus_One__c FROM Campaign WHERE Id = :campaignId LIMIT 1];
                 personInput.source = campaign.Type;
                 personInput.subcategory = campaign.Name;
             }
@@ -317,6 +349,12 @@ public without sharing class CLA_FormUtils {
                 Map<Id, Map<String, Object>> pricebookEntryMap = getPricebookEntryMap(productIds);
                 List<OrderItem> orderItems = prepareOrderItems(order, productEntries, pricebookEntryMap);
                 insert orderItems;
+            }
+
+            if (campaign.Type == 'Event'
+                && campaign.Allow_Plus_One__c == true) {
+
+                createPlusOneEventRecord(campaign, personAccount, plusOneFullName, attendingWithPlusOne, attending);
             }
 
             if (hasWishlist) {
@@ -351,6 +389,16 @@ public without sharing class CLA_FormUtils {
             System.debug('Line number: '+e.getLineNumber());
             throw new AuraHandledException('Failed to create order: ' + e.getMessage());
         }
+    }
+
+    private static Boolean clientHaveCanceledOrder(Id accountId, Id campaignId){
+        return [
+            SELECT COUNT() 
+            FROM Order 
+            WHERE AccountId = :accountId 
+            AND Campaign__c = :campaignId 
+            AND Status IN :CLA_FormConstants.CANCELLED_STATUS_ORDER
+            LIMIT 1] > 0;
     }
     
     private static String getAccountOwnerNonMember(Id campaignId){

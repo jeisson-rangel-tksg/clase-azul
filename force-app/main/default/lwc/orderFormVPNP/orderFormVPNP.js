@@ -18,6 +18,8 @@ import REGION_FIELD from '@salesforce/schema/Contact.Region__c';
 import COUNTRY_FIELD from '@salesforce/schema/Contact.Country__c';
 import STATE_FIELD from '@salesforce/schema/Contact.State__c';
 
+import getCampaignEventConfigMap from '@salesforce/apex/CLA_FormVPMPController.getCampaignEventConfigMap';
+
 export default class OrderFormVPNP extends LightningElement {
     // Core Fields
     email = '';
@@ -82,6 +84,30 @@ export default class OrderFormVPNP extends LightningElement {
     @track retailerNotFound = false;
 
     @track wishlists = [];
+    
+    // NEW PLUS ONE PROPERTIES
+    @track eventIsEvent = false;
+    @track eventAllowPlusOne = false;
+    campaignName;
+
+    @track attending = '';
+    @track attendingWithPlusOne = '';
+    @track plusOneFullName = '';
+
+    yesNoOptions = [
+        { label: 'Yes', value: 'Yes' },
+        { label: 'No',  value: 'No' }
+    ];
+
+    get showAttendanceSection() {
+        return this.eventIsEvent && this.eventAllowPlusOne;
+    }
+    get isAttendingYes() {
+        return this.attending === 'Yes';
+    }
+    get isPlusOneYes() {
+        return this.attendingWithPlusOne === 'Yes';
+    }
 
     retailerFields = {
         primaryField: { fieldPath: 'Name' }
@@ -155,9 +181,22 @@ export default class OrderFormVPNP extends LightningElement {
                             this.isInvalidCampaignModalOpen = true;
                             this.isLoading = false;
                         } else {
-                            this.refreshAlreadyHasOrder();
-                            this.refreshCanCreateOrder();
-                            this.checkAccount();
+                            getCampaignEventConfigMap({ campaignId: this.campaignId })
+                            .then(cfg => {
+                                this.eventIsEvent = !!cfg?.isEvent;
+                                this.eventAllowPlusOne = !!cfg?.allowPlusOne;
+                                this.campaignName = cfg?.campaignName;
+                            })
+                            .catch(e => {
+                                console.error('getCampaignEventConfigMap error', e);
+                                this.eventIsEvent = false;
+                                this.eventAllowPlusOne = false;
+                            })
+                            .finally(() => {
+                                this.refreshAlreadyHasOrder();
+                                this.refreshCanCreateOrder();
+                                this.checkAccount();
+                            });
                         }
                     })
                     .catch(error => {
@@ -434,7 +473,12 @@ export default class OrderFormVPNP extends LightningElement {
             products: formattedProducts,
             retailerId: this.retailerId,
             retailerNameText: this.retailerFreeText,
-            wishlistSelections
+            wishlistSelections,
+
+            // NEW: attendance/+1
+            attending: this.attending,
+            attendingWithPlusOne: this.attendingWithPlusOne,
+            plusOneFullName: this.plusOneFullName
         };
         
         // Filter out null or undefined fields
@@ -524,6 +568,15 @@ export default class OrderFormVPNP extends LightningElement {
         }
     }
 
+    handleAttendingChange(event) {
+        this.attending = event.detail.value;
+        console.log('ATTENDING: ', this.attending);
+    }
+    handleAttendingWithPlusOneChange(event) {
+        this.attendingWithPlusOne = event.detail.value;
+        console.log('ATTENDING WITH PLUS ONE: ', this.attendingWithPlusOne);
+    }
+
     // -------------------------------
     // Utility
     // -------------------------------
@@ -542,7 +595,7 @@ export default class OrderFormVPNP extends LightningElement {
     isFormValid() {
         const allValid = [...this.template.querySelectorAll('lightning-input, lightning-combobox')]
             .reduce((ok, cmp) => ok && cmp.checkValidity(), true);
-            
+
         const hasSelectedProducts =
             Array.isArray(this.products) && this.products.some(p => parseInt(p.quantity, 10) > 0);
 
@@ -550,7 +603,21 @@ export default class OrderFormVPNP extends LightningElement {
             (Array.isArray(this.wishlists) && this.wishlists.some(w => w.selected)) ||
             !!this.wishlistedVintagePink2022;
 
-        return (hasSelectedProducts || hasSelectedWishlist) && allValid;
+        // NEW: conditional requirements when Event + AllowPlusOne
+        let attendanceOK = true;
+        let plusOneToggleOK = true;
+        let plusOneNameOK = true;
+        if (this.showAttendanceSection) {
+            attendanceOK = this.attending === 'Yes' || this.attending === 'No';
+            if (this.isAttendingYes) {
+                plusOneToggleOK = this.attendingWithPlusOne === 'Yes' || this.attendingWithPlusOne === 'No';
+                if (this.isPlusOneYes) {
+                    plusOneNameOK = (this.plusOneFullName || '').trim().length > 0;
+                }
+            }
+        }
+
+        return (hasSelectedProducts || hasSelectedWishlist) && allValid && attendanceOK && plusOneToggleOK && plusOneNameOK;
     }
 
     showToast(title, message, variant) {

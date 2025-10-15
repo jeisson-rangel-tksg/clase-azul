@@ -192,6 +192,7 @@
                                     required>
                                 </lightning-input>
                             </lightning-layout-item>
+
                             <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
                                 <div class="custom-label">
                                     <span class="required">*</span>
@@ -261,6 +262,62 @@
                                         </lightning-input>
                                     </lightning-layout-item>
 
+                            </template>
+
+                            <!-- EVENT ATTENDANCE + PLUS ONE -->
+                            <template if:true={showAttendanceSection}>
+                                    <!-- Attendance -->
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">Will you attend the event?</span>
+                                        </div>
+                                        <lightning-combobox
+                                            variant="label-hidden"
+                                            name="attending"
+                                            options={yesNoOptions}
+                                            value={attending}
+                                            onchange={handleAttendingChange}
+                                            placeholder="Select an option"
+                                            required>
+                                        </lightning-combobox>
+                                    </lightning-layout-item>
+
+                                    <!-- Plus One toggle -->
+                                    <template if:true={isAttendingYes}>
+                                        <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                            <div class="custom-label">
+                                                <span class="required">*</span>
+                                                <span class="main-label">Are you attending with a +1?</span>
+                                            </div>
+                                            <lightning-combobox
+                                                variant="label-hidden"
+                                                name="attendingWithPlusOne"
+                                                options={yesNoOptions}
+                                                value={attendingWithPlusOne}
+                                                onchange={handleAttendingWithPlusOneChange}
+                                                placeholder="Select an option"
+                                                required>
+                                            </lightning-combobox>
+                                        </lightning-layout-item>
+                                    </template>
+
+                                    <!-- Plus One full name -->
+                                    <template if:true={isPlusOneYes}>
+                                        <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                            <div class="custom-label">
+                                                <span class="required">*</span>
+                                                <span class="main-label">Full Name for +1</span>
+                                            </div>
+                                            <lightning-input
+                                                variant="label-hidden"
+                                                name="plusOneFullName"
+                                                value={plusOneFullName}
+                                                onchange={handleInputChange}
+                                                required>
+                                            </lightning-input>
+                                        </lightning-layout-item>
+                                    </template>
                             </template>
 
                         </lightning-layout>
@@ -351,6 +408,62 @@
                                         </lightning-input>
                                     </lightning-layout-item>
 
+                            </template>
+
+                            <!-- EVENT ATTENDANCE + PLUS ONE -->
+                            <template if:true={showAttendanceSection}>
+                                    <!-- Attendance -->
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">Will you attend the event?</span>
+                                        </div>
+                                        <lightning-combobox
+                                            variant="label-hidden"
+                                            name="attending"
+                                            options={yesNoOptions}
+                                            value={attending}
+                                            onchange={handleAttendingChange}
+                                            placeholder="Select an option"
+                                            required>
+                                        </lightning-combobox>
+                                    </lightning-layout-item>
+
+                                    <!-- Plus One toggle -->
+                                    <template if:true={isAttendingYes}>
+                                        <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                            <div class="custom-label">
+                                                <span class="required">*</span>
+                                                <span class="main-label">Are you attending with a +1?</span>
+                                            </div>
+                                            <lightning-combobox
+                                                variant="label-hidden"
+                                                name="attendingWithPlusOne"
+                                                options={yesNoOptions}
+                                                value={attendingWithPlusOne}
+                                                onchange={handleAttendingWithPlusOneChange}
+                                                placeholder="Select an option"
+                                                required>
+                                            </lightning-combobox>
+                                        </lightning-layout-item>
+                                    </template>
+
+                                    <!-- Plus One full name -->
+                                    <template if:true={isPlusOneYes}>
+                                        <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                            <div class="custom-label">
+                                                <span class="required">*</span>
+                                                <span class="main-label">Full Name for +1</span>
+                                            </div>
+                                            <lightning-input
+                                                variant="label-hidden"
+                                                name="plusOneFullName"
+                                                value={plusOneFullName}
+                                                onchange={handleInputChange}
+                                                required>
+                                            </lightning-input>
+                                        </lightning-layout-item>
+                                    </template>
                             </template>
                             
                         </lightning-layout>
