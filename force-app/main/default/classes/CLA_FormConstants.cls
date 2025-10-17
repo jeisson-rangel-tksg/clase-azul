@@ -18,8 +18,15 @@ public class CLA_FormConstants {
     public static final String DEFAULT_ORDER_STATUS = 'Allocation';
     public static final String DEFAULT_ORDER_TYPE  = 'Allocation';
 
+    public static final List<String> CANCELLED_STATUS_ORDER = new List<String>{'Cancelled - Post Payment', 'Cancelled'};    
+
     public static final String MAIN_INTEREST_PINK_2022 = 'LE';
     public static final String INTEREST_PINK_2022 = 'Pink 2022';
+
+    // CLA_Eventos__c contants
+    public static final String YES_EN = 'Yes';
+    public static final String NO_EN  = 'No';
+    public static final String SI_ES  = 'Si';
 
     public static final String ERR_EMAIL_REQUIRED = 'Email is required.';
     public static final String ERR_PRODUCTS_REQUIRED = 'At least one product must be provided.';

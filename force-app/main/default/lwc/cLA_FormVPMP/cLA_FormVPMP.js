@@ -2,16 +2,23 @@ import { LightningElement, track, wire } from 'lwc';
 import { CurrentPageReference } from 'lightning/navigation';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 
-import getCampaignProducts from '@salesforce/apex/CLA_FormVPMPController.getCampaignProducts';
-import getPersonAccountByEmail from '@salesforce/apex/CLA_FormVPMPController.getPersonAccountByEmail';
-import createOrders from '@salesforce/apex/CLA_FormVPMPController.createOrders';
 import getPickupLocationsFromCampaign from '@salesforce/apex/CLA_FormVPMPController.getPickupLocationsFromCampaign';
+import getCampaignProducts from '@salesforce/apex/CLA_FormVPMPController.getCampaignProducts';
+//import getPickupLocationsAndProductsByCampaign from '@salesforce/apex/CLA_FormVPMPController.getPickupLocationsAndProductsByCampaign';
+import getPersonAccountByEmail from '@salesforce/apex/CLA_FormVPMPController.getPersonAccountByEmail';
+import canUserCreateOrder from '@salesforce/apex/CLA_FormVPMPController.canUserCreateOrder';
+import userHaveNonCancelledOrderValidation from '@salesforce/apex/CLA_FormVPMPController.userHaveNonCancelledOrderValidation';
+import getCampaignWishlists from '@salesforce/apex/CLA_FormVPMPController.getCampaignWishlists';
+import createOrders from '@salesforce/apex/CLA_FormVPMPController.createOrders';
+import isCampaignActive from '@salesforce/apex/CLA_FormVPMPController.isCampaignActive';
+import updateMissingAccountFields from '@salesforce/apex/CLA_FormVPMPController.updateMissingAccountFields';
 import { getObjectInfo, getPicklistValuesByRecordType } from 'lightning/uiObjectInfoApi';
 import ACCOUNT_OBJECT from '@salesforce/schema/Contact';
 import REGION_FIELD from '@salesforce/schema/Contact.Region__c';
 import COUNTRY_FIELD from '@salesforce/schema/Contact.Country__c';
 import STATE_FIELD from '@salesforce/schema/Contact.State__c';
 
+import getCampaignEventConfigMap from '@salesforce/apex/CLA_FormVPMPController.getCampaignEventConfigMap';
 
 export default class CampaignOrderComponent extends LightningElement {
     // Core Fields
@@ -40,9 +47,15 @@ export default class CampaignOrderComponent extends LightningElement {
     @track showStateInput = false;
     @track isPickupLocationDisabled = false;
 
+    @track canCreateOrderAllowed = true;
+    @track isOrderNotAllowedModalOpen = false;
+
+    @track alreadyHasOrder = false;
+    @track isAlreadyHasOrderModalOpen = false;
 
     // Picklists
     @track pickupLocationOptions = [];
+    @track productsByLocation = {};
 
     @track regionOptions = [];
     @track countryOptions = [];
@@ -52,12 +65,86 @@ export default class CampaignOrderComponent extends LightningElement {
     @track country = '';
     @track state = '';
 
+    @track street = '';
+
     @track isEmailDisabled = false;
     isEmailFromUrl = false;
+
+    // Account fields
+    @track showMissingBirthdate = false;
+    @track showMissingLocationFields = false;
 
     recordTypeId;
     countryFieldInfo;
     stateFieldInfo;
+
+    // NUEVAS propiedades de estado
+    @track retailerId = '';
+    @track retailerFreeText = '';
+    @track retailerNotFound = false;
+
+    @track wishlists = [];
+
+    // NEW PLUS ONE PROPERTIES
+    @track eventIsEvent = false;
+    @track eventAllowPlusOne = false;
+    campaignName;
+
+    @track attending = '';
+    @track attendingWithPlusOne = '';
+    @track plusOneFullName = '';
+
+    @track ignoreExistingOrder = false;
+
+    yesNoOptions = [
+        { label: 'Yes', value: 'Yes' },
+        { label: 'No',  value: 'No' }
+    ];
+
+    get showAttendanceSection() {
+        return this.eventIsEvent && this.eventAllowPlusOne;
+    }
+    get isAttendingYes() {
+        return this.attending === 'Yes';
+    }
+    get isPlusOneYes() {
+        return this.attendingWithPlusOne === 'Yes';
+    }
+
+
+    retailerFields = {
+        primaryField: { fieldPath: 'Name' }
+    };
+
+    // Determina si el label seleccionado es "Liquor Store Near Me"
+    get isLiquorStoreNearMe() {
+        if (!this.selectedPickupLocation || !this.pickupLocationOptions) return false;
+        // Encontrar la opción seleccionada para leer su label
+        const opt = (this.pickupLocationOptions || []).find(o => o.value === this.selectedPickupLocation);
+        const label = opt?.label || '';
+        return label === 'Liquor Store Near Me';
+    }
+
+    // Mostrar/ocultar picker según el checkbox
+    get showRetailerPicker() {
+        return this.isLiquorStoreNearMe && !this.retailerNotFound;
+    }
+
+    // Handlers
+    handleRetailerChange(event) {
+        this.retailerId = event.detail.recordId;
+        console.log('RET ID: ', this.retailerId);
+    }
+
+    handleRetailerNotFoundToggle(event) {
+        this.retailerNotFound = event.target.checked;
+        if (this.retailerNotFound) {
+            this.retailerId = '';
+        } else {
+            this.retailerFreeText = '';
+        }
+    }
+
 
     @wire(getObjectInfo, { objectApiName: ACCOUNT_OBJECT })
     objectInfo({ data }) {
@@ -82,19 +169,51 @@ export default class CampaignOrderComponent extends LightningElement {
         if (currentPageReference) {
             const email = currentPageReference.state?.email || '';
             const campaignId = currentPageReference.state?.campaignId || '';
+            const ignoreFlag = currentPageReference.state?.ignoreExistingOrder;
 
             if (email) {
                 this.email = email;
                 this.isEmailFromUrl = true;
             }
             if (campaignId) this.campaignId = campaignId;
+            if (ignoreFlag !== undefined) this.ignoreExistingOrder = true;
 
             if (this.campaignId) {
-                this.checkAccount();
+                isCampaignActive({ campaignId: this.campaignId })
+                    .then(result => {
+                        if (!result) {
+                            // inactive campaign → show modal
+                            this.isInvalidCampaignModalOpen = true;
+                            this.isLoading = false;
+                        } else {
+                            getCampaignEventConfigMap({ campaignId: this.campaignId })
+                            .then(cfg => {
+                                this.eventIsEvent = !!cfg?.isEvent;
+                                this.eventAllowPlusOne = !!cfg?.allowPlusOne;
+                                this.campaignName = cfg?.campaignName;
+                            })
+                            .catch(e => {
+                                console.error('getCampaignEventConfigMap error', e);
+                                this.eventIsEvent = false;
+                                this.eventAllowPlusOne = false;
+                            })
+                            .finally(() => {
+                                this.refreshAlreadyHasOrder();
+                                this.refreshCanCreateOrder();
+                                this.checkAccount();
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking campaign active:', error);
+                        this.isInvalidCampaignModalOpen = true;
+                        this.isLoading = false;
+                    });
             } else {
                 this.isInvalidCampaignModalOpen = true;
                 this.isLoading = false;
             }
+
         }
     }
 
@@ -104,9 +223,10 @@ export default class CampaignOrderComponent extends LightningElement {
     initializeComponent() {
         Promise.all([
             getCampaignProducts({ campaignId: this.campaignId }),
-            getPickupLocationsFromCampaign({ campaignId: this.campaignId })
+            getPickupLocationsFromCampaign({ campaignId: this.campaignId }),
+            getCampaignWishlists({ campaignId: this.campaignId })
         ])
-        .then(([productsResult, pickupResult]) => {
+        .then(([productsResult, pickupResult, wishlistResult]) => {
             if (!productsResult || productsResult.length === 0) {
                 this.isInvalidCampaignModalOpen = true;
             } else {
@@ -118,6 +238,11 @@ export default class CampaignOrderComponent extends LightningElement {
                     this.selectedPickupLocation = pickupResult[0].value;
                     this.isPickupLocationDisabled = true;
                 }
+
+                this.wishlists = (wishlistResult || []).map(w => ({
+                    ...w,
+                    selected: false
+                }));
 
                 this.isComponentReady = true;
             }
@@ -153,6 +278,14 @@ export default class CampaignOrderComponent extends LightningElement {
             .then(result => {
                 this.accountId = result?.accountId || '';
                 this.optInAnnualNewsletter = result?.optInAnnualNewsletter || false;
+
+                const bdate = result?.birthdate;
+                const region = result?.region;
+                const country = result?.country;
+                const state = result?.state;
+
+                this.showMissingBirthdate = !bdate;
+                this.showMissingLocationFields = !region || !country || !state;
 
                 if (this.accountId && this.isEmailFromUrl) {
                     this.isEmailDisabled = true;
@@ -256,11 +389,14 @@ export default class CampaignOrderComponent extends LightningElement {
         }
 
         this.email = newValue;
+        this.refreshAlreadyHasOrder()
+        this.refreshCanCreateOrder();
         this.fetchAccountByEmail();
     }
 
     handleInputChange(event) {
-        this[event.target.name] = event.target.value;
+        const { name, value } = event.target;
+        this[name] = value;
     }
 
     handleCheckboxChange(event) {
@@ -298,7 +434,16 @@ export default class CampaignOrderComponent extends LightningElement {
             this.showToast('Error', 'Missing customer email.', 'error');
             return;
         }
-
+        this.refreshAlreadyHasOrder();
+        if (this.alreadyHasOrder === true) {
+            this.isAlreadyHasOrderModalOpen = true;
+            return;
+        }
+        this.refreshCanCreateOrder();
+        if (this.canCreateOrderAllowed === false) {
+            this.isOrderNotAllowedModalOpen = true;
+            return;
+        }
         const formattedProducts = this.products
             .filter(prod => parseInt(prod.quantity, 10) > 0)
             .map(prod => ({
@@ -311,6 +456,10 @@ export default class CampaignOrderComponent extends LightningElement {
             return;
         }
 
+        const wishlistSelections = this.wishlists
+            .filter(w => w.selected)
+            .map(w => ({ mainInterest: w.mainInterest, subInterest: w.subInterest }));
+
         const rawRequest = {
             email: this.email,
             optInAnnualNewsletter: this.optInAnnualNewsletter,
@@ -321,11 +470,20 @@ export default class CampaignOrderComponent extends LightningElement {
             state: this.state,
             phone: this.phone,
             birthdate: this.birthdate,
+            street: this.street,
             city: this.city,
             zip: this.zip,
             campaignId: this.campaignId,
             pickupLocation: this.selectedPickupLocation,
-            products: formattedProducts
+            products: formattedProducts,
+            retailerId: this.retailerId,
+            retailerNameText: this.retailerFreeText,
+            wishlistSelections,
+
+            // NEW: attendance/+1
+            attending: this.attending,
+            attendingWithPlusOne: this.attendingWithPlusOne,
+            plusOneFullName: this.plusOneFullName
         };
         
         // Filter out null or undefined fields
@@ -336,8 +494,29 @@ export default class CampaignOrderComponent extends LightningElement {
         this.isLoading = true;
         createOrders({ input: orderRequest })
             .then(() => {
-                this.isNewOrderOpen = true;
-                this.products = this.mapProducts(this.products);
+                return this.fetchAccountByEmail();
+            })
+            .then(() => {
+            this.isNewOrderOpen = true;
+            this.products = this.mapProducts(this.products);
+
+            if (this.accountId && (this.showMissingBirthdate || this.showMissingLocationFields || this.isLiquorStoreNearMe)) {
+                const updatePayload = {
+                    accountId: this.accountId
+                };
+
+                if (this.showMissingBirthdate && this.birthdate) updatePayload.birthdate = this.birthdate;
+                if (this.showMissingLocationFields && this.selectedRegion) updatePayload.region = this.selectedRegion;
+                if (this.showMissingLocationFields && this.country) updatePayload.country = this.country;
+                if (this.showMissingLocationFields && this.state) updatePayload.state = this.state;
+
+                if (this.street) updatePayload.street = this.street;
+                if (this.city)   updatePayload.city   = this.city;
+                if (this.zip)    updatePayload.zip    = this.zip;
+
+                updateMissingAccountFields({ input: updatePayload })
+                    .catch(err => console.error('Failed to update missing fields:', err));
+            }
             })
             .catch(error => {
                 console.error('Create order failed:', error);
@@ -346,6 +525,70 @@ export default class CampaignOrderComponent extends LightningElement {
             .finally(() => {
                 this.isLoading = false;
             });
+    }
+
+    refreshCanCreateOrder() {
+        if (this.ignoreExistingOrder) {
+            this.canCreateOrderAllowed = true;
+            return Promise.resolve(true);
+        }
+        if (!this.campaignId || !this.email) {
+            this.canCreateOrderAllowed = true;
+            return;
+        }
+        canUserCreateOrder({ campaignId: this.campaignId, email: this.email })
+            .then(res => { this.canCreateOrderAllowed = res; })
+            .catch(err => {
+                console.error('canUserCreateOrder failed', err);
+                this.canCreateOrderAllowed = true;
+            });
+    }
+
+    closeOrderNotAllowedModal() {
+        this.isOrderNotAllowedModalOpen = false;
+    }
+
+    refreshAlreadyHasOrder() {
+
+        if (this.ignoreExistingOrder) {
+            this.alreadyHasOrder = false;
+            return Promise.resolve(false);
+        }
+        if (!this.campaignId || !this.email) {
+            this.alreadyHasOrder = false;
+        }
+        return userHaveNonCancelledOrderValidation({ campaignId: this.campaignId, email: this.email })
+            .then(res => {
+                //console.log('TIENE ORDENES?: '+res);
+                this.alreadyHasOrder = res;
+            })
+            .catch(err => {
+                console.error('userHaveNonCancelledOrderValidation failed', err);
+                this.alreadyHasOrder = false;
+            });
+    }
+
+    closeAlreadyHasOrderModal() {
+        this.isAlreadyHasOrderModalOpen = false;
+    }
+
+    handleWishlistItemChange(event) {
+        const idx = parseInt(event.target.dataset.index, 10);
+        const checked = event.target.checked;
+        const arr = [...this.wishlists];
+        if (!isNaN(idx) && arr[idx]) {
+            arr[idx].selected = checked;
+            this.wishlists = arr;
+        }
+    }
+
+    handleAttendingChange(event) {
+        this.attending = event.detail.value;
+        console.log('ATTENDING: ', this.attending);
+    }
+    handleAttendingWithPlusOneChange(event) {
+        this.attendingWithPlusOne = event.detail.value;
+        console.log('ATTENDING WITH PLUS ONE: ', this.attendingWithPlusOne);
     }
 
     // -------------------------------
@@ -365,9 +608,29 @@ export default class CampaignOrderComponent extends LightningElement {
 
     isFormValid() {
         const allValid = [...this.template.querySelectorAll('lightning-input, lightning-combobox')]
-            .reduce((validSoFar, inputCmp) => validSoFar && inputCmp.checkValidity(), true);
-        const hasSelectedProducts = this.products.some(prod => parseInt(prod.quantity, 10) > 0);
-        return hasSelectedProducts && allValid;
+            .reduce((ok, cmp) => ok && cmp.checkValidity(), true);
+
+        const hasSelectedProducts =
+            Array.isArray(this.products) && this.products.some(p => parseInt(p.quantity, 10) > 0);
+
+        const hasSelectedWishlist =
+            (Array.isArray(this.wishlists) && this.wishlists.some(w => w.selected));
+
+        // NEW: conditional requirements when Event + AllowPlusOne
+        let attendanceOK = true;
+        let plusOneToggleOK = true;
+        let plusOneNameOK = true;
+        if (this.showAttendanceSection) {
+            attendanceOK = this.attending === 'Yes' || this.attending === 'No';
+            if (this.isAttendingYes) {
+                plusOneToggleOK = this.attendingWithPlusOne === 'Yes' || this.attendingWithPlusOne === 'No';
+                if (this.isPlusOneYes) {
+                    plusOneNameOK = (this.plusOneFullName || '').trim().length > 0;
+                }
+            }
+        }
+
+        return (hasSelectedProducts || hasSelectedWishlist) && allValid && attendanceOK && plusOneToggleOK && plusOneNameOK;
     }
 
     showToast(title, message, variant) {

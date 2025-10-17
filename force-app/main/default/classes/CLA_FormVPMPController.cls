@@ -1,4 +1,22 @@
 public without sharing class CLA_FormVPMPController {
+
+    @AuraEnabled(cacheable=true)
+    public static Boolean isCampaignActive(Id campaignId) {
+        if (String.isBlank(campaignId)) {
+            return false;
+        }
+        List<Campaign> camps = [
+            SELECT IsActive
+            FROM Campaign
+            WHERE Id = :campaignId
+            LIMIT 1
+        ];
+        if (camps.isEmpty()) {
+            return false;
+        }
+        return camps[0].IsActive;
+    }
+
     @AuraEnabled(cacheable=true)
     public static List<Product2> getCampaignProducts(String campaignId) {
         return [
@@ -9,6 +27,27 @@ public without sharing class CLA_FormVPMPController {
             )
             WITH SYSTEM_MODE
         ];
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static Map<String, Object> getCampaignEventConfigMap(Id campaignId){
+        Map<String, Object> cfg = new Map<String, Object>{
+            'isEvent' => false,
+            'allowPlusOne' => false,
+            'campaignName' => null
+        };
+        if (String.isBlank(campaignId)) return cfg;
+
+        Campaign c = [
+            SELECT Name, Type, Allow_Plus_One__c
+            FROM Campaign
+            WHERE Id = :campaignId
+            LIMIT 1
+        ];
+        cfg.put('isEvent', c.Type == 'Event');
+        cfg.put('allowPlusOne', c.Allow_Plus_One__c);
+        cfg.put('campaignName', c.Name);
+        return cfg;
     }
 
     /**
@@ -56,6 +95,166 @@ public without sharing class CLA_FormVPMPController {
         return options;
     }
 
+    @AuraEnabled(cacheable=true)
+    public static PickupResponse getPickupLocationsAndProductsByCampaign(Id campaignId) {
+
+        List<PickupLocationOption> pickupOptions = new List<PickupLocationOption>();
+        Map<String, List<Product2>> productsByLocation = new Map<String, List<Product2>>();
+        System.debug('getPickupLocationsAndProductsByCampaign | campaignId: '+campaignId);
+
+        if (String.isBlank(campaignId)) {
+            throw new AuraHandledException('Missing Campaign Id.');
+        }
+
+        try {
+
+        //     // 1. Query all campaign-linked almacenes
+        //     List<Almacen_de_campa_a__c> almacenLinks = [
+        //         SELECT Id, Name, Almacen__r.Id, Almacen__r.Name
+        //         FROM Almacen_de_campa_a__c
+        //         WHERE Campaign__c = :campaignId
+        //     ];
+
+        //     if (almacenLinks.isEmpty()) {
+        //         return new PickupResponse(pickupOptions, productsByLocation);
+        //     }
+
+        //     Map<Id, Almacen_de_campa_a__c> almacenLinkByAlmacenId = new Map<Id, Almacen_de_campa_a__c>();
+        //     Set<Id> almacenIds = new Set<Id>();
+
+        //     for (Almacen_de_campa_a__c link : almacenLinks) {
+        //         if (link.Almacen__r != null) {
+        //             almacenIds.add(link.Almacen__r.Id);
+        //             almacenLinkByAlmacenId.put(link.Almacen__r.Id, link);
+        //         }
+        //     }
+
+        //     // 2. Query Inventario__c records with quantity > 0
+        //     List<Inventario__c> inventarios = [
+        //         SELECT Product__r.Id, Product__r.Name, Product__r.Description, Product__r.Family,
+        //             Almacen__r.Id, Almacen__r.Name,
+        //             Quantity__c
+        //         FROM Inventario__c
+        //         WHERE Almacen__r.Id IN :almacenIds
+        //         AND Quantity__c > 0
+        //     ];
+
+        //     // 3. Group products by almacen name
+        //     Map<String, List<Product2>> tempProductMap = new Map<String, List<Product2>>();
+        //     Set<Id> validAlmacenIds = new Set<Id>();
+
+        //     for (Inventario__c inv : inventarios) {
+        //         Id almacenId = inv.Almacen__r?.Id;
+        //         String almacenName = inv.Almacen__r?.Name;
+
+        //         if (almacenId == null || almacenName == null || inv.Product__r == null) continue;
+
+        //         if (!tempProductMap.containsKey(almacenName)) {
+        //             tempProductMap.put(almacenName, new List<Product2>());
+        //         }
+        //         tempProductMap.get(almacenName).add(inv.Product__r);
+        //         validAlmacenIds.add(almacenId); // track only almacenes with at least 1 product with quantity > 0
+        //     }
+
+        //     // 4. Build valid pickup options
+        //     for (Id almacenId : validAlmacenIds) {
+        //         Almacen_de_campa_a__c link = almacenLinkByAlmacenId.get(almacenId);
+        //         if (link != null && link.Almacen__r?.Name != null && link.Name != null) {
+        //             pickupOptions.add(new PickupLocationOption(
+        //                 link.Almacen__r.Name,  // value
+        //                 link.Name              // label
+        //             ));
+
+        //             productsByLocation.put(link.Almacen__r.Name, tempProductMap.get(link.Almacen__r.Name));
+        //         }
+        //     }
+        // 
+        } catch (Exception e) {
+            System.debug(e);
+        }
+        return new PickupResponse(pickupOptions, productsByLocation);
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static Boolean canUserCreateOrder(Id campaignId, String email) {
+
+        if (String.isBlank(campaignId) || String.isBlank(email)) return true;
+
+        List<Account> pas = [
+            SELECT Id, PersonContactId
+            FROM Account
+            WHERE IsPersonAccount = true AND PersonEmail = :email
+            LIMIT 1
+        ];
+        if (pas.isEmpty()) return true;
+        Account pa = pas[0];
+        if (pa.PersonContactId == null) return true;
+
+        if (isEvent(campaignId)){
+            return true;
+        }
+        if (userHasNonCancelledOrder(campaignId, pa.Id)){
+            return false;
+        }
+        if (allowNonMembers(campaignId)){
+            return true;
+        }
+        Boolean campaignHasCMembers = campaignHasCampaignMembers(campaignId);
+        Boolean isCampaignMember;
+        if (campaignHasCMembers) {
+            isCampaignMember = isCampaignMember(campaignId, pa.PersonContactId);
+        }
+        return campaignHasCMembers && isCampaignMember;
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static Boolean userHaveNonCancelledOrderValidation(Id campaignId, String email) {
+        List<Account> pas = [SELECT Id, PersonContactId FROM Account WHERE PersonEmail = :email];
+        if (pas.isEmpty()){
+             return false;
+        }
+        Account pa = pas[0];
+        if (pa.PersonContactId == null){
+             return false;
+        }
+        return userHasNonCancelledOrder(campaignId, pa.Id);
+    }
+
+    private static Boolean userHasNonCancelledOrder(Id campaignId, Id accountId){
+        Set<Id> campaigns = collectParentAndImmediateChildren(campaignId);
+        return [
+        SELECT COUNT() FROM Order 
+        WHERE AccountId = :accountId AND Campaign__c IN :campaigns 
+        AND Status NOT IN :CLA_FormConstants.CANCELLED_STATUS_ORDER
+        LIMIT 1] > 0;
+    }
+
+    private static Boolean campaignHasCampaignMembers(Id campaignId){
+        return [SELECT COUNT() FROM CampaignMember WHERE CampaignId = :campaignId LIMIT 1] > 0;
+    }
+
+    private static Boolean isCampaignMember(Id campaignId, Id contactId) {
+        Set<Id> campaigns = collectParentAndImmediateChildren(campaignId);
+        return [SELECT COUNT() FROM CampaignMember WHERE CampaignId IN :campaigns AND ContactId = :contactId LIMIT 1] > 0;
+    }
+
+    private static Boolean allowNonMembers(Id campaignId){
+        return [SELECT COUNT() FROM Campaign WHERE Id = :campaignId AND Allow_Orders_From_Non_Members__c = true LIMIT 1] > 0;
+    }
+
+    private static Boolean isEvent(Id campaignId) {
+        return [SELECT COUNT() FROM Campaign WHERE Id = :campaignId AND (Type = 'Event') LIMIT 1] > 0;
+    }
+
+    /** Get Campaign and Child Campaigns */
+    private static Set<Id> collectParentAndImmediateChildren(Id parentId) {
+        Set<Id> ids = new Set<Id>{ parentId };
+        for (Campaign c : [SELECT Id FROM Campaign WHERE ParentId = :parentId LIMIT 5000]) {
+            ids.add(c.Id);
+        }
+        return ids;
+    }
+
     /**
      * Retrieves Person Account by email. If not found, creates one using the email as name.
      *
@@ -76,18 +275,100 @@ public without sharing class CLA_FormVPMPController {
                 'accountId' => null,
                 'optInAnnualNewsletter' => false
             };
-        }else{
+        } else {
+            Account acc = personAccounts[0];
             return new Map<String, Object>{
-                'accountId' => personAccounts[0].Id,
-                'optInAnnualNewsletter' => personAccounts[0].CLA_OptInAnnualNewsletter__pc
+                'accountId' => acc.Id,
+                'optInAnnualNewsletter' => acc.CLA_OptInAnnualNewsletter__pc,
+                'birthdate' => acc.PersonBirthdate,
+                'region' => acc.Region__pc,
+                'country' => acc.Country__pc,
+                'state' => acc.State__pc
             };
         }
+    }
+
+    @AuraEnabled
+    public static void updateMissingAccountFields(Map<String, Object> input) {
+        Id accountId = (Id) input.get('accountId');
+        if (accountId == null) {
+            throw new AuraHandledException('Missing account ID.');
+        }
+
+        Account accToUpdate = new Account(Id = accountId);
+
+        if (input.containsKey('birthdate')) {
+            accToUpdate.PersonBirthdate = Date.valueOf((String) input.get('birthdate'));
+        }
+
+        if (input.containsKey('region')) {
+            accToUpdate.Region__pc = (String) input.get('region');
+        }
+
+        if (input.containsKey('country')) {
+            accToUpdate.Country__pc = (String) input.get('country');
+        }
+
+        if (input.containsKey('state')) {
+            accToUpdate.State__pc = (String) input.get('state');
+        }
+
+        if (input.containsKey('street')) {
+            accToUpdate.PersonMailingStreet = (String) input.get('street');
+        }
+
+        if (input.containsKey('city')){
+            accToUpdate.PersonMailingCity = (String) input.get('city');
+        }
+
+        if (input.containsKey('zip')) { 
+            accToUpdate.PersonMailingPostalCode = (String) input.get('zip');
+        }
+        
+        update accToUpdate;
     }
 
 
     @AuraEnabled
     public static void createOrders(Map<String, Object> input) {
         CLA_FormUtils.createOrderWithItems(input);
+    }
+
+    @AuraEnabled(cacheable=true)
+    public static List<WishlistOption> getCampaignWishlists(Id campaignId) {
+        if (String.isBlank(campaignId)) {
+            return new List<WishlistOption>();
+        }
+
+        List<WishlistOption> result = new List<WishlistOption>();
+        for (Campaign_Wishlist__c wl : [
+            SELECT Id, Label_EN__c, Label_ES__c, Main_Interest__c, Sub_Interest__c
+            FROM Campaign_Wishlist__c
+            WHERE Campaign__c = :campaignId
+            ORDER BY CreatedDate ASC
+        ]) {
+            result.add(new WishlistOption(
+                wl.Id,
+                wl.Label_EN__c,
+                wl.Label_ES__c,
+                wl.Main_Interest__c,
+                wl.Sub_Interest__c
+            ));
+        }
+        return result;
+    }
+
+    public class WishlistOption {
+        @AuraEnabled public Id id;
+        @AuraEnabled public String labelEn;
+        @AuraEnabled public String labelEs;
+        @AuraEnabled public String mainInterest;
+        @AuraEnabled public String subInterest;
+
+        public WishlistOption(Id id, String en, String es, String mainI, String subI) {
+            this.id = id; this.labelEn = en; this.labelEs = es;
+            this.mainInterest = mainI; this.subInterest = subI;
+        }
     }
 
     /**
@@ -101,6 +382,16 @@ public without sharing class CLA_FormVPMPController {
         public PickupLocationOption(String value, String label) {
             this.value = value;
             this.label = label;
+        }
+    }
+
+    public class PickupResponse {
+        @AuraEnabled public List<PickupLocationOption> pickupLocations;
+        @AuraEnabled public Map<String, List<Product2>> productsByLocation;
+
+        public PickupResponse(List<PickupLocationOption> locations, Map<String, List<Product2>> products) {
+            this.pickupLocations = locations;
+            this.productsByLocation = products;
         }
     }
     

@@ -138,7 +138,7 @@ private class CLA_FormVPMPControllerTest {
             'products' => new List<Object>{
                 new Map<Object, Object>{
                     'productId' => prod.Id,
-                    'quantity' => 3
+                    'quantity' => 3.0
                 }
             }
         };

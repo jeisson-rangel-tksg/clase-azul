@@ -15,7 +15,6 @@
                                 <div class="custom-label">
                                     <span class="required">*</span>
                                     <span class="main-label">Primary Email </span>
-                                    <span class="sub-label">Correo electrónico</span>
                                 </div>
                                 <lightning-input
                                     variant="label-hidden"
@@ -32,7 +31,6 @@
                                 <div class="custom-label">
                                     <span class="required">*</span>
                                     <span class="main-label">First Name </span>
-                                    <span class="sub-label">Nombre</span>
                                 </div>
                                 <lightning-input
                                     variant="label-hidden"
@@ -47,7 +45,6 @@
                                 <div class="custom-label">
                                     <span class="required">*</span>
                                     <span class="main-label">Last Name </span>
-                                    <span class="sub-label">Apellido</span>
                                 </div>
                                 <lightning-input
                                     variant="label-hidden"
@@ -62,7 +59,6 @@
                                 <div class="custom-label">
                                     <span class="required">*</span>
                                     <span class="main-label">Date of Birth </span>
-                                    <span class="sub-label">Fecha de nacimiento</span>
                                 </div>
                                 <lightning-input
                                     variant="label-hidden"
@@ -78,7 +74,6 @@
                                 <div class="custom-label">
                                     <span class="required">*</span>
                                     <span class="main-label">Phone Number </span>
-                                    <span class="sub-label">Número de teléfono</span>
                                 </div>
                                 <lightning-input
                                     variant="label-hidden"
@@ -94,7 +89,6 @@
                                 <div class="custom-label">
                                     <span class="required">*</span>
                                     <span class="main-label">Region </span>
-                                    <span class="sub-label">Región</span>
                                 </div>
                                 <lightning-combobox
                                     variant="label-hidden"
@@ -112,7 +106,6 @@
                                     <div class="custom-label">
                                         <span class="required">*</span>
                                         <span class="main-label">Country </span>
-                                        <span class="sub-label">País</span>
                                     </div>
                                     <lightning-input
                                         variant="label-hidden"
@@ -127,7 +120,6 @@
                                     <div class="custom-label">
                                         <span class="required">*</span>
                                         <span class="main-label">Country </span>
-                                        <span class="sub-label">País</span>
                                     </div>
                                     <lightning-combobox
                                         variant="label-hidden"
@@ -146,7 +138,6 @@
                                     <div class="custom-label">
                                         <span class="required">*</span>
                                         <span class="main-label">State </span>
-                                        <span class="sub-label">Estado</span>
                                     </div>
                                     <lightning-input
                                         variant="label-hidden"
@@ -161,7 +152,6 @@
                                     <div class="custom-label">
                                         <span class="required">*</span>
                                         <span class="main-label">State </span>
-                                        <span class="sub-label">Estado</span>
                                     </div>
                                     <lightning-combobox
                                         variant="label-hidden"
@@ -179,7 +169,6 @@
                                 <div class="custom-label">
                                     <span class="required">*</span>
                                     <span class="main-label">City </span>
-                                    <span class="sub-label">Ciudad</span>
                                 </div>
                                 <lightning-input
                                     variant="label-hidden"
@@ -194,7 +183,6 @@
                                 <div class="custom-label">
                                     <span class="required">*</span>
                                     <span class="main-label">ZIP/Postal Code </span>
-                                    <span class="sub-label">Código Postal</span>
                                 </div>
                                 <lightning-input
                                     variant="label-hidden"
@@ -207,8 +195,7 @@
                             <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
                                 <div class="custom-label">
                                     <span class="required">*</span>
-                                    <span class="main-label">Desired Pick-Up Location </span>
-                                    <span class="sub-label">Ubicación deseada</span>
+                                    <span class="main-label">I would like to purchase through… </span>
                                 </div>
                                 <lightning-combobox
                                     variant="label-hidden"
@@ -220,7 +207,160 @@
                                     placeholder="Select a location"
                                     required>
                                 </lightning-combobox>
+                                <template  if:true={isLiquorStoreNearMe}>
+                                    <div class="main-label" style="margin-top: 10px;">
+                                        <span class="sub-label">Your Client Advisor will facilitate the shipping of your order through a retailer near you.</span>
+                                    </div>
+                                </template>
                             </lightning-layout-item>
+
+                            <!-- EVENT ATTENDANCE + PLUS ONE -->
+                            <template if:true={showAttendanceSection}>
+                                    <!-- Attendance -->
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">Will you attend the event?</span>
+                                        </div>
+                                        <lightning-combobox
+                                            variant="label-hidden"
+                                            name="attending"
+                                            options={yesNoOptions}
+                                            value={attending}
+                                            onchange={handleAttendingChange}
+                                            placeholder="Select an option"
+                                            required>
+                                        </lightning-combobox>
+                                    </lightning-layout-item>
+
+                                    <!-- Plus One toggle -->
+                                    <template if:true={isAttendingYes}>
+                                        <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                            <div class="custom-label">
+                                                <span class="required">*</span>
+                                                <span class="main-label">Are you attending with a +1?</span>
+                                            </div>
+                                            <lightning-combobox
+                                                variant="label-hidden"
+                                                name="attendingWithPlusOne"
+                                                options={yesNoOptions}
+                                                value={attendingWithPlusOne}
+                                                onchange={handleAttendingWithPlusOneChange}
+                                                placeholder="Select an option"
+                                                required>
+                                            </lightning-combobox>
+                                        </lightning-layout-item>
+                                    </template>
+
+                                    <!-- Plus One full name -->
+                                    <template if:true={isPlusOneYes}>
+                                        <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                            <div class="custom-label">
+                                                <span class="required">*</span>
+                                                <span class="main-label">Full Name for +1</span>
+                                            </div>
+                                            <lightning-input
+                                                variant="label-hidden"
+                                                name="plusOneFullName"
+                                                value={plusOneFullName}
+                                                onchange={handleInputChange}
+                                                required>
+                                            </lightning-input>
+                                        </lightning-layout-item>
+                                    </template>
+                            </template>
+
+                            <!-- Retailer picker section (conditional when pickup is 'Liquor Store Near Me')
+                            <template if:true={isLiquorStoreNearMe}>
+                                <lightning-layout multiple-rows="true" class="slds-m-top_small">
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <lightning-record-picker
+                                            lwc:if={showRetailerPicker}
+                                            object-api-name="Retailer__c"
+                                            label="Retailer"
+                                            placeholder="Search retailers"
+                                            matching-info={retailerFields}
+                                            value={retailerId}
+                                            onchange={handleRetailerChange}>
+                                        </lightning-record-picker>
+
+                                        <template lwc:if={retailerNotFound}>
+                                            <div class="custom-label">
+                                                <span class="required">*</span>
+                                                <span class="main-label">Retailer Name</span>
+                                            </div>
+                                            <lightning-input
+                                                variant="label-hidden"
+                                                name="retailerFreeText"
+                                                value={retailerFreeText}
+                                                maxlength="80"
+                                                onchange={handleInputChange}
+                                                placeholder="Type your retailer name (max 80)">
+                                            </lightning-input>
+                                        </template>
+                                    </lightning-layout-item>
+
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small" class="slds-m-top_x-large">
+                                        <lightning-input
+                                            type="checkbox"
+                                            name="retailerNotFound"
+                                            label="Retailer not listed"
+                                            checked={retailerNotFound}
+                                            onchange={handleRetailerNotFoundToggle}>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+                                </lightning-layout>
+                            </template> -->
+
+                            <template if:true={isLiquorStoreNearMe}>
+
+                                    <!-- Mailing Street -->
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">Mailing Street</span>
+                                        </div>
+                                        <lightning-input
+                                            variant="label-hidden"
+                                            name="street"
+                                            value={street}
+                                            onchange={handleInputChange}
+                                            required>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+
+                                    <!-- City -->
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">City</span>
+                                        </div>
+                                        <lightning-input
+                                            variant="label-hidden"
+                                            name="city"
+                                            value={city}
+                                            onchange={handleInputChange}
+                                            required>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+
+                                    <!-- ZIP -->
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">ZIP/Postal Code</span>
+                                        </div>
+                                        <lightning-input
+                                            variant="label-hidden"
+                                            name="zip"
+                                            value={zip}
+                                            onchange={handleInputChange}
+                                            required>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+
+                            </template>
+
                         </lightning-layout>
                     </template>
                     <template lwc:else>
@@ -229,7 +369,6 @@
                                 <div class="custom-label">
                                     <span class="required">*</span>
                                     <span class="main-label">Primary Email</span>
-                                    <span class="sub-label">Correo electrónico</span>
                                 </div>
                                 <lightning-input
                                     variant="label-hidden"
@@ -244,8 +383,7 @@
                             <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
                                 <div class="custom-label">
                                     <span class="required">*</span>
-                                    <span class="main-label">Desired Pick-Up Location </span>
-                                    <span class="sub-label">Ubicación deseada</span>
+                                    <span class="main-label">I would like to purchase through… </span>
                                 </div>
                                 <lightning-combobox
                                     variant="label-hidden"
@@ -257,11 +395,164 @@
                                     placeholder="Select a location"
                                     required>
                                 </lightning-combobox>
+                                <template  if:true={isLiquorStoreNearMe}>
+                                    <div class="main-label" style="margin-top: 10px;">
+                                        <span class="sub-label">Your Client Advisor will facilitate the shipping of your order through a retailer near you.</span>
+                                    </div>
+                                </template>
                             </lightning-layout-item>
+
+                            <!-- EVENT ATTENDANCE + PLUS ONE -->
+                            <template if:true={showAttendanceSection}>
+                                    <!-- Attendance -->
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">Will you attend the event?</span>
+                                        </div>
+                                        <lightning-combobox
+                                            variant="label-hidden"
+                                            name="attending"
+                                            options={yesNoOptions}
+                                            value={attending}
+                                            onchange={handleAttendingChange}
+                                            placeholder="Select an option"
+                                            required>
+                                        </lightning-combobox>
+                                    </lightning-layout-item>
+
+                                    <!-- Plus One toggle -->
+                                    <template if:true={isAttendingYes}>
+                                        <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                            <div class="custom-label">
+                                                <span class="required">*</span>
+                                                <span class="main-label">Are you attending with a +1?</span>
+                                            </div>
+                                            <lightning-combobox
+                                                variant="label-hidden"
+                                                name="attendingWithPlusOne"
+                                                options={yesNoOptions}
+                                                value={attendingWithPlusOne}
+                                                onchange={handleAttendingWithPlusOneChange}
+                                                placeholder="Select an option"
+                                                required>
+                                            </lightning-combobox>
+                                        </lightning-layout-item>
+                                    </template>
+
+                                    <!-- Plus One full name -->
+                                    <template if:true={isPlusOneYes}>
+                                        <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                            <div class="custom-label">
+                                                <span class="required">*</span>
+                                                <span class="main-label">Full Name for +1</span>
+                                            </div>
+                                            <lightning-input
+                                                variant="label-hidden"
+                                                name="plusOneFullName"
+                                                value={plusOneFullName}
+                                                onchange={handleInputChange}
+                                                required>
+                                            </lightning-input>
+                                        </lightning-layout-item>
+                                    </template>
+                            </template>
+
+                            <!-- Retailer picker section (conditional when pickup is 'Liquor Store Near Me')
+                            <template if:true={isLiquorStoreNearMe}>
+                                <lightning-layout multiple-rows="true" class="slds-m-top_small">
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <lightning-record-picker
+                                            lwc:if={showRetailerPicker}
+                                            object-api-name="Retailer__c"
+                                            label="Retailer"
+                                            placeholder="Search retailers"
+                                            matching-info={retailerFields}
+                                            value={retailerId}
+                                            onchange={handleRetailerChange}>
+                                        </lightning-record-picker>
+
+                                        <template lwc:if={retailerNotFound}>
+                                            <div class="custom-label">
+                                                <span class="required">*</span>
+                                                <span class="main-label">Retailer Name</span>
+                                            </div>
+                                            <lightning-input
+                                                variant="label-hidden"
+                                                name="retailerFreeText"
+                                                value={retailerFreeText}
+                                                maxlength="80"
+                                                onchange={handleInputChange}
+                                                placeholder="Type your retailer name (max 80)">
+                                            </lightning-input>
+                                        </template>
+                                    </lightning-layout-item>
+
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small" class="slds-m-top_x-large">
+                                        <lightning-input
+                                            type="checkbox"
+                                            name="retailerNotFound"
+                                            label="Retailer not listed"
+                                            checked={retailerNotFound}
+                                            onchange={handleRetailerNotFoundToggle}>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+                                </lightning-layout>
+                            </template> -->
+
+                            <template if:true={isLiquorStoreNearMe}>
+
+                                    <!-- Mailing Street -->
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">Mailing Street</span>
+                                        </div>
+                                        <lightning-input
+                                            variant="label-hidden"
+                                            name="street"
+                                            value={street}
+                                            onchange={handleInputChange}
+                                            required>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+
+                                    <!-- City -->
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">City</span>
+                                        </div>
+                                        <lightning-input
+                                            variant="label-hidden"
+                                            name="city"
+                                            value={city}
+                                            onchange={handleInputChange}
+                                            required>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+
+                                    <!-- ZIP -->
+                                    <lightning-layout-item size="12" medium-device-size="6" padding="around-small">
+                                        <div class="custom-label">
+                                            <span class="required">*</span>
+                                            <span class="main-label">ZIP/Postal Code</span>
+                                        </div>
+                                        <lightning-input
+                                            variant="label-hidden"
+                                            name="zip"
+                                            value={zip}
+                                            onchange={handleInputChange}
+                                            required>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+
+                            </template>
+
                         </lightning-layout>
                     </template>
                     <div class="slds-box slds-m-around_medium">
-                        <p>Please select your desired decanter. You can choose more than one option. <span class="gray">/ Por favor, seleccione su licorera deseada. Puede elegir más de una opción.</span></p>
+                        <p>Please select your desired decanter.</p>
                         <template for:each={products} for:item="product" for:index="index">
                             <div key={product.Id}>
                                 <lightning-layout multiple-rows="true" class="slds-grid_vertical-align-center slds-p-horizontal_small">
@@ -287,7 +578,6 @@
                                             <div class="custom-label">
                                                 <span class="required">*</span>
                                                 <span class="main-label">Quantity </span>
-                                                <span class="sub-label">Cantidad</span>
                                             </div>
                                             <lightning-input
                                                 variant="label-hidden"
@@ -305,36 +595,36 @@
                             </div>
                         </template>
 
-                        <!-- Wishlist checkbox with SLDS spacing -->
-                        <lightning-layout multiple-rows="true" 
-                            class="slds-grid_vertical-align-center slds-p-horizontal_small">
-                            <lightning-layout-item size="12" medium-device-size="1">
-                                <lightning-input
-                                    type="checkbox"
-                                    variant="label-hidden"
-                                    name="wishlistVintagePink2022"
-                                    checked={wishlistedVintagePink2022}
-                                    onchange={handleWishlistChange}
-                                    class="slds-checkbox slds-p-around_small">
-                                </lightning-input>
-                            </lightning-layout-item>
+                        <!-- Wishlist section -->
+                        <template if:true={wishlists.length}>
+                            <div>
+                                <template for:each={wishlists} for:item="w" for:index="wIndex">
+                                    <div key={w.id}>
+                                        <lightning-layout multiple-rows="true" class="slds-grid_vertical-align-center slds-p-horizontal_small">
+                                            <lightning-layout-item size="12" medium-device-size="1">
+                                                <lightning-input
+                                                    type="checkbox"
+                                                    name="wishlist"
+                                                    data-index={wIndex}
+                                                    checked={w.selected}
+                                                    onchange={handleWishlistItemChange}
+                                                    class="slds-checkbox slds-p-around_small">
+                                                </lightning-input>
+                                            </lightning-layout-item>
 
-                            <lightning-layout-item size="12" medium-device-size="11">
-                                <div class="custom-label-stacked">
-                                    <div class="main-label">
-                                        Mark this box if you are interested in adding our vintage item Clase Azul Pink 2022 to your wishlist.
+                                            <lightning-layout-item size="12" medium-device-size="11">
+                                                <div class="custom-label-stacked">
+                                                    <div class="main-label">{w.labelEn}</div>
+                                                </div>
+                                            </lightning-layout-item>
+                                        </lightning-layout>
                                     </div>
-                                    <div class="sub-label">
-                                         Marca esta casilla si estás interesado en agregar nuestro artículo vintage Clase Azul Pink 2022 a tu lista de deseos.
-                                    </div>
-                                </div>
-                            </lightning-layout-item>
-                        </lightning-layout>
+                                </template>
+                            </div>
+                        </template>
 
-                        <p class="slds-m-top_medium">Desired # of decanters is based upon availability and will be confirmed by your Client Advisor. Submission of this form does not guarantee allocation. <span class="gray">/ # deseado de licoreras sujeto a disponibilidad, será confirmado por su Client Advisor. El registro de este formulario no garantiza el producto.</span></p>
-                        <p class="slds-m-top_medium">Submission of this form does not guarantee allocation.  <span class="gray">/ El registro de este formulario no garantiza el producto.</span></p>
-                        <p class="slds-m-top_medium">Adding this item to your wishlist does not guarantee the acquisition of this product. <span class="gray">/ Agregar este artículo a tu lista de deseos no garantiza la adquisición del producto.</span></p>
 
+                        <p class="slds-m-top_medium">Desired # of decanters is based upon availability and will be confirmed by your Client Advisor. Submission of this form does not guarantee allocation. Adding this item to your wishlist does not guarantee the acquisition of this product.</p>
                     </div>
 
                     <div class="slds-grid slds-grid_align-start slds-m-bottom_medium">
@@ -350,10 +640,7 @@
                         </div>
                         <div class="custom-label-stacked">
                             <div class="main-label">
-                                Discover the art of our luxury spirits and Mexican hospitality. Be the first to know about our limited editions, private events, and new Clase Azul destinations, including La Hacienda.
-                            </div>
-                            <div class="sub-label">
-                                Descubre el arte de nuestros licores de lujo y la hospitalidad mexicana. Sé el primero en conocer nuestras ediciones limitadas, eventos privados y nuevos destinos de Clase Azul, incluyendo La Hacienda.
+                                Discover the art of our luxury spirits and Mexican hospitality. Be the first to know about our limited editions, private events, and new Clase Azul destinations.
                             </div>
                         </div>
                     </div>
@@ -425,6 +712,44 @@
                         <a href="mailto:info@claseazul.com"> info@claseazul.com</a> for assistance.
                     </p>
                 </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <template if:true={isOrderNotAllowedModalOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium"><i>Email not recognized for this campaign</i></h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-text-align_center">This campaign doesn’t allow orders from non-members. If you’re expecting access, ensure your email is registered as a member.</p>
+                </div>
+                <footer class="slds-modal__footer slds-text-align_center">
+                    <lightning-button variant="brand" label="OK" onclick={closeOrderNotAllowedModal}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+    <!-- Already-has-order modal -->
+    <template if:true={isAlreadyHasOrderModalOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium"><i>Order already registered</i></h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <p class="slds-text-align_center">
+                        We found an existing order linked to your email for this campaign (or a related sub-campaign).
+                        You can’t submit a new allocation with this email.
+                    </p>
+                </div>
+                <footer class="slds-modal__footer slds-text-align_center">
+                    <lightning-button variant="brand" label="OK" onclick={closeAlreadyHasOrderModal}></lightning-button>
+                </footer>
             </div>
         </section>
         <div class="slds-backdrop slds-backdrop_open"></div>
